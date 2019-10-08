@@ -4,6 +4,7 @@ import cv2
 import imageio
 
 DTYPE = 'float32'
+
 def txt2np_C(filepath: str, array_size=32):
     '''
     returns frames [frame, height, width]
@@ -26,8 +27,10 @@ def txt2np_C(filepath: str, array_size=32):
                 frame = frame.reshape([array_size, array_size], order='F')
                 frame *= 1e-2
                 frames.append(frame)
-                timestamps.append(timestamp)
+                timestamps.append(float(timestamp))
         frames = np.array(frames)
+        # the array needs rotating 90 CW
+        frames = np.rot90(frames, k=-1, axes = (1, 2))
     return frames, timestamps
 
 def array2gif(array, filepath2save: str, fps=10):
