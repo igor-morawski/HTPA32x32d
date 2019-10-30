@@ -2,8 +2,10 @@ import numpy as np
 import os
 import cv2
 import imageio
+import argparse
 
 DTYPE = 'float32'
+
 def txt2np_C(filepath: str, array_size=32):
     '''
     returns frames [frame, height, width]
@@ -26,8 +28,10 @@ def txt2np_C(filepath: str, array_size=32):
                 frame = frame.reshape([array_size, array_size], order='F')
                 frame *= 1e-2
                 frames.append(frame)
-                timestamps.append(timestamp)
+                timestamps.append(float(timestamp))
         frames = np.array(frames)
+        # the array needs rotating 90 CW
+        frames = np.rot90(frames, k=-1, axes = (1, 2))
     return frames, timestamps
 
 def array2gif(array, filepath2save: str, fps=10):
@@ -45,6 +49,18 @@ def array2gif(array, filepath2save: str, fps=10):
     return
 
 if __name__ == "__main__":
-    a, b = txt2np_C(os.path.join("examples", "ex2.txt"))
-    normalized_sequence = (a-a.min())/(a.max()-a.min())
-    array2gif(normalized_sequence, os.path.join("examples", "ex2.gif"))
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--input', type=str, help='.txt file to parse')
+    parser.add_argument('--output', type=str, help='.np file to output parsed array')
+    parser.add_argument('--gif', type=str, help='.gif output file, optional')
+    parser.add_argument('--rot90', type=int, help='rotate [input]-times 90 degree')
+    FLAGS, unparsed = parser.parse_known_args()
+    if not FLAGS.input or not FLAGS.output:
+        raise ValueError
+    array, _ = txt2np_C(FLAGS.input)
+    if FLAGS.rot90:
+        array = np.rot90(array, k=FLAGS.rot90)
+    normalized_sequence = (array-array.min())/(array.max()-array.min())
+    np.save(FLAGS.output, array)
+    if FLAGS.gif:
+        array2gif(normalized_sequence, FLAGS.gif)
