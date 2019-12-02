@@ -3,36 +3,7 @@ import os
 import cv2
 import imageio
 import argparse
-
-DTYPE = 'float32'
-
-def txt2np_C(filepath: str, array_size=32):
-    '''
-    returns frames [frame, height, width]
-    temperatures are in grad C
-    '''
-    with open(filepath) as f:
-        #discard the first line
-        _ = f.readline()
-        #read line by line now
-        line = "dummy line"
-        frames = []
-        timestamps = []
-        while line:
-            line = f.readline()
-            if line:
-                split = line.split(" ")
-                frame = split[0:1024]
-                timestamp = split[-1][:-1]
-                frame = np.array([int(T) for T in frame], dtype=DTYPE)
-                frame = frame.reshape([array_size, array_size], order='F')
-                frame *= 1e-2
-                frames.append(frame)
-                timestamps.append(float(timestamp))
-        frames = np.array(frames)
-        # the array needs rotating 90 CW
-        frames = np.rot90(frames, k=-1, axes = (1, 2))
-    return frames, timestamps
+from tools import txt2np
 
 def array2gif(array, filepath2save: str, fps=10):
     temperature = array 
@@ -57,7 +28,7 @@ if __name__ == "__main__":
     FLAGS, unparsed = parser.parse_known_args()
     if not FLAGS.input or not FLAGS.output:
         raise ValueError
-    array, _ = txt2np_C(FLAGS.input)
+    array, _ = txt2np(FLAGS.input)
     if FLAGS.rot90:
         array = np.rot90(array, k=FLAGS.rot90)
     normalized_sequence = (array-array.min())/(array.max()-array.min())
