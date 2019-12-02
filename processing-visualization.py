@@ -1,4 +1,4 @@
-from txt2np import txt2np_C
+from tools import txt2np_C
 from txt2np import array2gif
 
 import numpy as np
