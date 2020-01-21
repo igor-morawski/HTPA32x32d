@@ -1,3 +1,6 @@
+"""
+Tools for Heimann HTPA recordings. 
+"""
 import numpy as np
 import pandas as pd
 DTYPE = 'float32'
@@ -42,7 +45,7 @@ def txt2np(filepath: str, array_size:int=32):
         frames = np.rot90(frames, k=-1, axes = (1, 2))
     return frames, timestamps
 
-def np2csv(output_fp:str, array, timestamps: list):
+def np2df(output_fp:str, array, timestamps: list):
     """
     Convert Heimann HTPA NumPy array shaped [frame, height, width] to .CSV dataframe
 
@@ -77,40 +80,39 @@ def np2csv(output_fp:str, array, timestamps: list):
         row.to_csv(output_fp, mode='a', header=False, sep=PD_SEP,index=False)
     return True
 
-        
 
 
-def _flattenFrames(array):
+def flattenFrames(array):
     """
-    Flattens array of shape (frame, height, width) into array of shape (frame, height*width)
+    Flattens array of shape (frames, height, width) into array of shape (frames, height*width)
 
     Parameters
     ----------
     array : np.array
-         (frame, height, width)
+         (frames, height, width)
 
     Returns
     -------
     np.array
         flattened array
-         (frame, height, width)
+         (frames, height, width)
     """
     _, height, width = array.shape
     return array.reshape((-1, height*width))
 
-def _reshapeFlattenedFrames(array):
+def reshapeFlattenedFrames(array):
     """
-    Reshapes array of shape (frame, height*width) into array of shape (frame, height, width)
+    Reshapes array of shape (frames, height*width) into array of shape (frames, height, width)
 
     Parameters
     ----------
     array : np.array
-         flattened array (frame, height, width)
+         flattened array (frames, height, width)
 
     Returns
     -------
     np.array
-        reshaped array (frame, height, width)
+        reshaped array (frames, height, width)
     """
     _, elements = array.shape
     height = int(elements**(1/2))
@@ -122,7 +124,7 @@ if __name__ == "__main__":
     SAMPLE_FP = os.path.join("testing", "sample.TXT")
     SAMPLE_FP = os.path.join("examples", "person1.TXT")
     array, timestamps = txt2np(filepath = SAMPLE_FP, array_size = 32)
-    np2csv(os.path.join("tmp","try.csv"), array, timestamps)
+    np2df(os.path.join("tmp","try.csv"), array, timestamps)
     output_fp = os.path.join("tmp","try.csv")
     frame = array[1,...]
 

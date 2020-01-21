@@ -1,0 +1,83 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html><head><title>Python: module tools</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+</head><body bgcolor="#f0f0f8">
+
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="heading">
+<tr bgcolor="#7799ee">
+<td valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial">&nbsp;<br><big><big><strong>tools</strong></big></big></font></td
+><td align=right valign=bottom
+><font color="#ffffff" face="helvetica, arial"><a href=".">index</a><br><a href="file:d%3A%5Cigor%5Cdocuments%5Cgithub%5Chtpa32x32d%5Ctools.py">d:\igor\documents\github\htpa32x32d\tools.py</a></font></td></tr></table>
+    <p><tt>Tools&nbsp;for&nbsp;Heimann&nbsp;HTPA&nbsp;recordings.</tt></p>
+<p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#aa55cc">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial"><big><strong>Modules</strong></big></font></td></tr>
+    
+<tr><td bgcolor="#aa55cc"><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
+<td width="100%"><table width="100%" summary="list"><tr><td width="25%" valign=top><a href="numpy.html">numpy</a><br>
+</td><td width="25%" valign=top><a href="pandas.html">pandas</a><br>
+</td><td width="25%" valign=top></td><td width="25%" valign=top></td></tr></table></td></tr></table><p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#eeaa77">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial"><big><strong>Functions</strong></big></font></td></tr>
+    
+<tr><td bgcolor="#eeaa77"><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
+<td width="100%"><dl><dt><a name="-flattenFrames"><strong>flattenFrames</strong></a>(array)</dt><dd><tt>Flattens&nbsp;array&nbsp;of&nbsp;shape&nbsp;(frames,&nbsp;height,&nbsp;width)&nbsp;into&nbsp;array&nbsp;of&nbsp;shape&nbsp;(frames,&nbsp;height*width)<br>
+&nbsp;<br>
+Parameters<br>
+----------<br>
+array&nbsp;:&nbsp;np.array<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(frames,&nbsp;height,&nbsp;width)<br>
+&nbsp;<br>
+Returns<br>
+-------<br>
+np.array<br>
+&nbsp;&nbsp;&nbsp;&nbsp;flattened&nbsp;array<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(frames,&nbsp;height,&nbsp;width)</tt></dd></dl>
+ <dl><dt><a name="-np2csv"><strong>np2csv</strong></a>(output_fp: str, array, timestamps: list)</dt><dd><tt>Convert&nbsp;Heimann&nbsp;HTPA&nbsp;NumPy&nbsp;array&nbsp;shaped&nbsp;[frame,&nbsp;height,&nbsp;width]&nbsp;to&nbsp;.CSV&nbsp;dataframe<br>
+&nbsp;<br>
+Parameters<br>
+----------<br>
+output_fp&nbsp;:&nbsp;str<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Filepath&nbsp;to&nbsp;destination&nbsp;file,&nbsp;including&nbsp;the&nbsp;file&nbsp;name.<br>
+array&nbsp;:&nbsp;np.array<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Temperatue&nbsp;distribution&nbsp;sequence,&nbsp;shape&nbsp;[frame,&nbsp;height,&nbsp;width].<br>
+timestamps&nbsp;:&nbsp;list<br>
+&nbsp;&nbsp;&nbsp;&nbsp;List&nbsp;of&nbsp;timestamps&nbsp;of&nbsp;corresponding&nbsp;array&nbsp;frames.</tt></dd></dl>
+ <dl><dt><a name="-reshapeFlattenedFrames"><strong>reshapeFlattenedFrames</strong></a>(array)</dt><dd><tt>Reshapes&nbsp;array&nbsp;of&nbsp;shape&nbsp;(frames,&nbsp;height*width)&nbsp;into&nbsp;array&nbsp;of&nbsp;shape&nbsp;(frames,&nbsp;height,&nbsp;width)<br>
+&nbsp;<br>
+Parameters<br>
+----------<br>
+array&nbsp;:&nbsp;np.array<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;flattened&nbsp;array&nbsp;(frames,&nbsp;height,&nbsp;width)<br>
+&nbsp;<br>
+Returns<br>
+-------<br>
+np.array<br>
+&nbsp;&nbsp;&nbsp;&nbsp;reshaped&nbsp;array&nbsp;(frames,&nbsp;height,&nbsp;width)</tt></dd></dl>
+ <dl><dt><a name="-txt2np"><strong>txt2np</strong></a>(filepath: str, array_size: int = 32)</dt><dd><tt>Convert&nbsp;Heimann&nbsp;HTPA&nbsp;.txt&nbsp;to&nbsp;NumPy&nbsp;array&nbsp;shaped&nbsp;[frame,&nbsp;height,&nbsp;width].<br>
+&nbsp;<br>
+Parameters<br>
+----------<br>
+filepath&nbsp;:&nbsp;str<br>
+array_size&nbsp;:&nbsp;int,&nbsp;optional<br>
+&nbsp;<br>
+Returns<br>
+-------<br>
+np.array<br>
+&nbsp;&nbsp;&nbsp;&nbsp;3D&nbsp;array&nbsp;of&nbsp;temperature&nbsp;distribution&nbsp;sequence,&nbsp;shaped&nbsp;[frame,&nbsp;height,&nbsp;width].</tt></dd></dl>
+</td></tr></table><p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#55aa55">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial"><big><strong>Data</strong></big></font></td></tr>
+    
+<tr><td bgcolor="#55aa55"><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
+<td width="100%"><strong>DTYPE</strong> = 'float32'<br>
+<strong>PD_NAN</strong> = inf<br>
+<strong>PD_SEP</strong> = ';'</td></tr></table>
+</body></html>

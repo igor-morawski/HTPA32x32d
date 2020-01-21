@@ -6,6 +6,16 @@ import tools
 
 SAMPLE_FP = os.path.join("testing", "sample.TXT")
 FRAMES_EXPECTED_FP = os.path.join("testing", "expected.npy")
+TMP_PATH = os.path.join("TMP")
+
+def _init():
+    if os.path.exists(TMP_PATH):
+        os.rmdir(TMP_PATH)
+    os.mkdir(TMP_PATH)
+
+def _cleanup():
+    if os.path.exists(TMP_PATH):
+        os.rmdir(TMP_PATH)
 
 class TestTxt2np(unittest.TestCase):
     def test_Result(self):
@@ -39,36 +49,36 @@ class TestTxt2np(unittest.TestCase):
         self.assertEqual(timestamps, expected_timestamps)
         self.assertEqual(frames.shape, expected_frames_shape)
 
-class TestNp2csv(unittest.TestCase):
+class TestNp2df(unittest.TestCase):
     def test_Result(self):
         input = np.load(FRAMES_EXPECTED_FP)
         # TODO: unit testing
         pass
 
-class Test_flattenFrames(unittest.TestCase):
+class TestflattenFrames(unittest.TestCase):
     def test_Result(self):
         input_shape = (100, 32, 32)
         expected_shape = (100, 32*32)
         input = np.arange(np.prod(input_shape)).reshape(input_shape)
-        result = tools._flattenFrames(input)
+        result = tools.flattenFrames(input)
         self.assertEqual(result.shape, expected_shape)
         
-class Test_reshapeFlattenedFrames(unittest.TestCase):
+class TestreshapeFlattenedFrames(unittest.TestCase):
     def test_Result(self):
         input_shape = (100, 32*32)
         expected_shape = (100, 32, 32)
         input = np.arange(np.prod(input_shape)).reshape(input_shape)
-        result = tools._reshapeFlattenedFrames(input)
+        result = tools.reshapeFlattenedFrames(input)
         self.assertEqual(result.shape, expected_shape)
 
-class Test_reshapingFrames(unittest.TestCase):
-    def test_flattenAndReshape(self):
+class TestreshapingFrames(unittest.TestCase):
+    def testflattenAndReshape(self):
         input = np.load(FRAMES_EXPECTED_FP)
         expected_frames_shape = (3, 32, 32)
-        expected_flattened_frames_shape = (3, 32**2)
-        flattened_result = tools._flattenFrames(input)
+        expectedflattened_frames_shape = (3, 32**2)
+        flattened_result = tools.flattenFrames(input)
         first_frame = flattened_result[0]
         expected_first_frame = input[0].flatten()
         self.assertTrue(np.array_equal(first_frame, expected_first_frame))
-        reshaped_result = tools._reshapeFlattenedFrames(flattened_result)
+        reshaped_result = tools.reshapeFlattenedFrames(flattened_result)
         self.assertTrue(np.array_equal(input, reshaped_result))
