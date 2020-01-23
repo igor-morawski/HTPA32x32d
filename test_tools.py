@@ -93,18 +93,37 @@ class TestpcWriteGif(unittest.TestCase):
     def test_DurationAndLoop(self):
         _init()
         gif_fp = os.path.join(TMP_PATH, "tmp.gif")
-        temperature_array = np.load(EXPECTED_NP_FP)
-        pc_array = tools.np2pc(temperature_array)
+        height, width = 100, 100
+        zeros = np.zeros([height, width], dtype=np.uint8)
+        ones = 255 * np.ones([height, width], dtype=np.uint8)
+        b = np.stack([ones, zeros, zeros], axis=-1)
+        g = np.stack([zeros, ones, zeros], axis=-1)
+        r = np.stack([zeros, zeros, ones], axis=-1)
+        pc_array = np.stack([b, g, r])
         expected_timestamps = [1.424, 2.453453, 3.5345]
         duration_list = [
             x_t2 - x_t1
             for x_t1, x_t2 in zip(expected_timestamps, expected_timestamps[1:])
         ]
         duration_list.append(duration_list[-1])
-        tools.pcWriteGif(pc_array, gif_fp, duration=duration_list, loop=2)
+        tools.pcWriteGif(pc_array, gif_fp, duration=duration_list, loop=1)
         self.assertTrue(os.path.exists(gif_fp))
         # TODO read back the gif?
-        # TODO cleanup
+        _cleanup([gif_fp])
+
+
+class Test_timestamps2frameDurations(unittest.TestCase):
+    def test_Result_Defaults(self):
+        test = [1, 2, 4]
+        expected_result = [1, 2, 2]
+        result = tools.timestamps2frameDurations(test)
+        self.assertEqual(expected_result, result)
+
+    def test_Result_Op(self):
+        test = [1, 2, 4]
+        expected_result = [1, 2, 5]
+        result = tools.timestamps2frameDurations(test, lastFrameDuration=5)
+        self.assertEqual(expected_result, result)
 
 
 class TestflattenFrames(unittest.TestCase):

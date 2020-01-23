@@ -238,22 +238,28 @@ def pcWriteGif(array, fp: str, fps=10, loop: int = 0, duration=None):
     return True
 
 
-def timestamps2framedurations(timestamps: list, lastFrameDuration=None) -> list:
+def timestamps2frameDurations(timestamps: list, lastFrameDuration=None) -> list:
     """
-    # TODO 
-    Produces frame durations list to produce more accurate 
+    Produces frame durations list to make gifs produced with pcWriteGif() more accurate temporally, 
     # TODO 
     Parameters
     ----------
-    array : np.array
-         flattened array (frames, height, width)
+    timestamps : list
+        List of timestamps of corresponding array frames.
+    lastFrameDuration : float, optional
+        List of N timestamps gives information about durations of N-1 initial frames, 
+        if not given, the function will duplicate the last value in the produced list to make up for the missing frame duration.
 
     Returns
     -------
-    np.array
-        reshaped array (frames, height, width)
+    list
+        List of frame durations.
     """
-    pass  # TODO
+    frameDurations = [x_t2 - x_t1 for x_t1, x_t2 in zip(timestamps, timestamps[1:])]
+    if not lastFrameDuration:
+        lastFrameDuration = frameDurations[-1]
+    frameDurations.append(lastFrameDuration)
+    return frameDurations
 
 
 def reshapeFlattenedFrames(array):
@@ -277,11 +283,55 @@ def reshapeFlattenedFrames(array):
 
 
 if __name__ == "__main__":
-    import os
+    import argparse
+    import glob
 
-    SAMPLE_FP = os.path.join("testing", "sample.TXT")
-    SAMPLE_FP = os.path.join("examples", "person1.TXT")
-    array, timestamps = txt2np(filepath=SAMPLE_FP, array_size=32)
-    npWriteCsv(os.path.join("tmp", "try.csv"), array, timestamps)
-    output_fp = os.path.join("tmp", "try.csv")
-    frame = array[1, ...]
+    parser = argparse.ArgumentParser(
+        description="Process .TXT files in a directory passed"
+    )
+    parser.add_argument("object")
+    parser.add_argument(
+        "--gif", "-g", dest="gif", help="Write gifs", action="store_true"
+    )
+    parser.add_argument(
+        "--csv", "-c", dest="csv", help="Write csvs", action="store_true"
+    )
+    args = parser.parse_args()
+    dir_path, file_path = None, None
+    if os.path.isdir(args.object):
+        dir_path = os.path.abspath(args.object)
+    elif os.path.isfile(args.object):
+        file_path = os.path.abspath(args.object)
+
+    def txtFunctions(txt_fp, gif=False, csv=False, **args):
+        def init(txt_fp, ext):
+            parent, txt_fn = os.path.split(txt_fp)
+            fn = txt_fn.split(".TXT")[0]
+            txt_fn = fn + ".TXT"
+            ext_fn = fn + ext
+            ext_fp = os.path.join(parent, ext_fn)
+            if os.path.exists(ext_fp):
+                return None
+            print("Converting {} to {}".format(txt_fn, ext_fn))
+            return ext_fp
+
+        array, timestamps = txt2np(txt_fp)
+
+        if csv:
+            csv_fp = init(txt_fp, ".csv")
+            if csv_fp:
+                npWriteCsv(csv_fp, array, timestamps)
+        if gif:
+            gif_fp = init(txt_fp, ".gif")
+            if gif_fp:
+                pc = np2pc(array)
+                pcWriteGif(pc, gif_fp, duration=timestamps2frameDurations(timestamps))
+        return
+
+    if dir_path:
+        for txt_fp in glob.glob(os.path.join(dir_path, "*.TXT")):
+            txtFunctions(txt_fp, **vars(args))
+    if file_path:
+        txt_fp = file_path
+        txtFunctions(txt_fp, **vars(args))
+
