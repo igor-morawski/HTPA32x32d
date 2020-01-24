@@ -92,12 +92,11 @@ if __name__ == "__main__":
             devices.append(Device(ip))         
         for device in devices:
             # TODO: change to multithread
-            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             sock.settimeout(1)
             msg = "Calling HTPA series devices"
             try:
                 sock.bind((socket.gethostbyname(socket.gethostname()), 0))
-                sock.connect(device.address)
                 sock.sendto(msg.encode(), device.address)
                 response = sock.recv(1024)
                 print(response)
