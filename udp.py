@@ -93,10 +93,14 @@ if __name__ == "__main__":
         for device in devices:
             # TODO: change to multithread
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            
             msg = "Calling HTPA series devices"
             try:
+                sock.bind(device.address)
                 sock.sendto(msg.encode(), device.address)
-                print(sock.recvfrom(1024))
-                print(sock.recvfrom(1024))
+                response = sock.recvfrom(1024)
+                print(response)
+                response = sock.recvfrom(1024)
+                print(response)
             finally:
                 sock.close()
