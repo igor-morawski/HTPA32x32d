@@ -87,7 +87,6 @@ class TestpcWriteGif(unittest.TestCase):
         pc_array = tools.np2pc(temperature_array)
         tools.pcWriteGif(pc_array, gif_fp)
         self.assertTrue(os.path.exists(gif_fp))
-        # TODO read back the gif?
         _cleanup([gif_fp])
 
     def test_DurationAndLoop(self):
@@ -108,7 +107,6 @@ class TestpcWriteGif(unittest.TestCase):
         duration_list.append(duration_list[-1])
         tools.pcWriteGif(pc_array, gif_fp, duration=duration_list, loop=1)
         self.assertTrue(os.path.exists(gif_fp))
-        # TODO read back the gif?
         _cleanup([gif_fp])
 
 
