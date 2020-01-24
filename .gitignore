@@ -107,3 +107,4 @@ venv.bak/
 .vscode/
 
 tmp/
+settings/devices.txt
