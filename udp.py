@@ -7,6 +7,7 @@ import sys
 
 IP_LIST_FP = os.path.join("settings", "devices.txt")
 HTPA_PORT = 30444
+BUFF_SIZE = 1300
 
 def loadIPList():
     fp = IP_LIST_FP
@@ -92,15 +93,48 @@ if __name__ == "__main__":
             devices.append(Device(ip))         
         for device in devices:
             # TODO: change to multithread
-            sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            sock.settimeout(1)
-            msg = "Calling HTPA series devices"
+            # INIT
             try:
+                sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                sock.settimeout(1)
                 sock.bind((socket.gethostbyname(socket.gethostname()), 0))
+
+                msg = "Calling HTPA series devices"
                 sock.sendto(msg.encode(), device.address)
-                response = sock.recv(1024)
-                print(response)
-                response = sock.recv(1024)
-                print(response)
+                response = sock.recv(BUFF_SIZE)
+                print("Connected successfully to device under %s"%device.ip)
+            except socket.timeout:
+                sock.close()
+                sys.exit("Can't connect to HTPA %s while initializing" % device.ip)
             finally:
+                sock.close()
+            # BIND
+            try:
+                sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                sock.settimeout(1)
+                sock.bind((socket.gethostbyname(socket.gethostname()), 0))
+
+                msg = "Bind HTPA series device"
+                sock.sendto(msg.encode(), device.address)
+                response = sock.recv(BUFF_SIZE)
+                msg = "K"
+                sock.sendto(msg.encode(), device.address)      
+                #TODO delete a b  
+                a = sock.recv(BUFF_SIZE)
+                b = sock.recv(BUFF_SIZE)
+                with open("a.txt", 'wb+') as file:
+                    file.write(a)
+                with open("b.txt", 'wb+') as file:
+                    file.write(b)
+                #TODO cont. here
+            except socket.timeout:
+                msg = "x Release HTPA series device"
+                sock.sendto(msg.encode(), device.address)
+                sock.close()
+                print("Device %s released"%device.ip)
+                sys.exit("Can't connect to while binding and sending 'k' to HTPA %s" % device.ip)
+            finally:
+                msg = "x Release HTPA series device"
+                sock.sendto(msg.encode(), device.address)
+                print("Device %s released"%device.ip)
                 sock.close()
