@@ -96,7 +96,7 @@ if __name__ == "__main__":
             
             msg = "Calling HTPA series devices"
             try:
-                sock.bind(('', 0))
+                sock.bind((socket.gethostbyname(socket.gethostname()), 0))
                 sock.sendto(msg.encode(), device.address)
                 response = sock.recvfrom(1024)
                 print(response)
