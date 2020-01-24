@@ -5,8 +5,8 @@ Data types:
     * txt - Heimann HTPA recordings in *.TXT,
     * np - NumPy array of thermopile sensor array data, shaped [frames, height, width],
     * csv - thermopile sensor array data in *.csv format, NOT a pandas dataframe!
-    * df - pandas dataframe
-    * pc - NumPy array of pseudocolored thermopile sensor array data, shaped [frames, height, width, channels]
+    * df - pandas dataframe,
+    * pc - NumPy array of pseudocolored thermopile sensor array data, shaped [frames, height, width, channels],
 """
 import numpy as np
 import pandas as pd
@@ -23,7 +23,6 @@ PD_TIME_COL = "Time (sec)"
 PD_PTAT_COL = "PTAT"
 
 # TODO: np -> array (naming convention)
-# TODO: 2 -> write, if not conversion
 
 
 def txt2np(filepath: str, array_size: int = 32):
@@ -182,6 +181,8 @@ def saveFrames(array, dir_name: str, extension: str = ".bmp") -> bool:
     bool
         True if success
     """
+    if not os.path.exists(dir_name):
+        os.mkdir(dir_name)
     for idx, frame in enumerate(array):
         cv2.imwrite(os.path.join(dir_name, "%d" % idx + extension), frame)
     return True
@@ -296,6 +297,13 @@ if __name__ == "__main__":
     parser.add_argument(
         "--csv", "-c", dest="csv", help="Write csvs", action="store_true"
     )
+    parser.add_argument(
+        "--bmp",
+        "-b",
+        dest="bmp",
+        help="Write bitmaps to a directory named same as the processed file",
+        action="store_true",
+    )
     args = parser.parse_args()
     dir_path, file_path = None, None
     if os.path.isdir(args.object):
@@ -303,7 +311,7 @@ if __name__ == "__main__":
     elif os.path.isfile(args.object):
         file_path = os.path.abspath(args.object)
 
-    def txtFunctions(txt_fp, gif=False, csv=False, **args):
+    def txtFunctions(txt_fp, gif=False, csv=False, bmp=False, **args):
         def init(txt_fp, ext):
             parent, txt_fn = os.path.split(txt_fp)
             fn = txt_fn.split(".TXT")[0]
@@ -326,6 +334,12 @@ if __name__ == "__main__":
             if gif_fp:
                 pc = np2pc(array)
                 pcWriteGif(pc, gif_fp, duration=timestamps2frameDurations(timestamps))
+        if bmp:
+            parent, txt_fn = os.path.split(txt_fp)
+            fn = txt_fn.split(".TXT")[0]
+            dest = fn
+            print("Extracting frames...")
+            saveFrames(np2pc(array), os.path.join(parent, dest))
         return
 
     if dir_path:
