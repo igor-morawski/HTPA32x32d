@@ -6,6 +6,7 @@ import os
 import sys
 
 IP_LIST_FP = os.path.join("settings", "devices.txt")
+HTPA_PORT = 30444
 
 def loadIPList():
     fp = IP_LIST_FP
@@ -60,6 +61,14 @@ def query_yes_no(question, default="yes"):
             sys.stdout.write("Please respond with 'yes' or 'no' "
                              "(or 'y' or 'n').\n")
 
+class Device:
+    """
+    A class for handling HTPA32x32d devices in UDP communication
+    """
+    def __init__(self, ip):
+        self.ip = ip 
+        self.port = HTPA_PORT
+        self.address = (self.ip, self.port)
 
 if __name__ == "__main__":
     ips = loadIPList()
@@ -73,10 +82,21 @@ if __name__ == "__main__":
         print("Devices listed: ")
         for idx, ip in enumerate(ips):
             print("[%d] %s"%(idx, ip)) 
-        proceed = query_yes_no("Proceed with the %d devices listed?"%len(ips), default="no")
+        proceed = query_yes_no("Proceed with the %d devices listed?"%len(ips), default="yes")
         if not proceed:
             sys.exit("Exiting")
 
     if proceed:
-        pass
-        
+        devices = []
+        for ip in ips:
+            devices.append(Device(ip))         
+        for device in devices:
+            # TODO: change to multithread
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            msg = "Calling HTPA series devices"
+            try:
+                sock.sendto(msg.encode(), device.address)
+                print(sock.recvfrom(1024))
+                print(sock.recvfrom(1024))
+            finally:
+                sock.close()
