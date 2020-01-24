@@ -15,7 +15,7 @@ def loadIPList():
     except:
         print("The file {} doesn't exist".format(fp))
         print("Creating new settings file...")
-        open(fp, 'w').close()
+        open(fp, 'w+').close()
         return []
     return data.splitlines()
 
