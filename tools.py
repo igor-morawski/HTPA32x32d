@@ -63,7 +63,7 @@ def txt2np(filepath: str, array_size: int = 32):
     return frames, timestamps
 
 
-def npWriteCsv(output_fp: str, array, timestamps: list) -> bool:
+def write_np2csv(output_fp: str, array, timestamps: list) -> bool:
     """
     Convert and save Heimann HTPA NumPy array shaped [frames, height, width] to .CSV dataframe
 
@@ -98,7 +98,7 @@ def npWriteCsv(output_fp: str, array, timestamps: list) -> bool:
     return True
 
 
-def readCsv2np(csv_fp: str):
+def read_csv2np(csv_fp: str):
     """
     Read and convert .CSV dataframe to a Heimann HTPA NumPy array shaped [frames, height, width]
 
@@ -117,11 +117,11 @@ def readCsv2np(csv_fp: str):
     df = pd.read_csv(csv_fp, **READ_CSV_ARGS)
     timestamps = df[PD_TIME_COL]
     array = df.drop([PD_TIME_COL, PD_PTAT_COL], axis=1).to_numpy(dtype=DTYPE)
-    array = reshapeFlattenedFrames(array)
+    array = reshape_flattened_frames(array)
     return array, timestamps
 
 
-def applyHeatmap(array, cv_colormap: int = cv2.COLORMAP_JET) -> np.ndarray:
+def apply_heatmap(array, cv_colormap: int = cv2.COLORMAP_JET) -> np.ndarray:
     """
     Applies pseudocoloring (heatmap) to a sequence of thermal distribution. Same as np2pc().
     np2pc() is preffered.
@@ -147,7 +147,7 @@ def applyHeatmap(array, cv_colormap: int = cv2.COLORMAP_JET) -> np.ndarray:
 def np2pc(array, cv_colormap: int = cv2.COLORMAP_JET) -> np.ndarray:
 
     """
-    Applies pseudocoloring (heatmap) to a sequence of thermal distribution. Same as applyHeatmap().
+    Applies pseudocoloring (heatmap) to a sequence of thermal distribution. Same as apply_heatmap().
     np2pc() is preffered.
 
     Parameters
@@ -161,13 +161,13 @@ def np2pc(array, cv_colormap: int = cv2.COLORMAP_JET) -> np.ndarray:
     np.array
          (frames, height, width, channels)
     """
-    return applyHeatmap(array, cv_colormap)
+    return apply_heatmap(array, cv_colormap)
 
 
 # TODO heatmap -> pc
 
 
-def saveFrames(array, dir_name: str, extension: str = ".bmp") -> bool:
+def save_frames(array, dir_name: str, extension: str = ".bmp") -> bool:
     """
     Exctracts and saves frames from a sequence array into a folder dir_name
 
@@ -188,7 +188,7 @@ def saveFrames(array, dir_name: str, extension: str = ".bmp") -> bool:
     return True
 
 
-def flattenFrames(array):
+def flatten_frames(array):
     """
     Flattens array of shape [frames, height, width] into array of shape [frames, height*width]
 
@@ -206,7 +206,7 @@ def flattenFrames(array):
     return array.reshape((-1, height * width))
 
 
-def pcWriteGif(array, fp: str, fps=10, loop: int = 0, duration=None):
+def write_pc2gif(array, fp: str, fps=10, loop: int = 0, duration=None):
     """
     Converts and saves NumPy array of pseudocolored thermopile sensor array data, shaped [frames, height, width, channels], into a .gif file
 
@@ -239,15 +239,15 @@ def pcWriteGif(array, fp: str, fps=10, loop: int = 0, duration=None):
     return True
 
 
-def timestamps2frameDurations(timestamps: list, lastFrameDuration=None) -> list:
+def timestamps2frame_durations(timestamps: list, last_frame_duration=None) -> list:
     """
-    Produces frame durations list to make gifs produced with pcWriteGif() more accurate temporally, 
+    Produces frame durations list to make gifs produced with write_pc2gif() more accurate temporally, 
     # TODO 
     Parameters
     ----------
     timestamps : list
         List of timestamps of corresponding array frames.
-    lastFrameDuration : float, optional
+    last_frame_duration : float, optional
         List of N timestamps gives information about durations of N-1 initial frames, 
         if not given, the function will duplicate the last value in the produced list to make up for the missing frame duration.
 
@@ -256,21 +256,20 @@ def timestamps2frameDurations(timestamps: list, lastFrameDuration=None) -> list:
     list
         List of frame durations.
     """
-    frameDurations = [x_t2 - x_t1 for x_t1, x_t2 in zip(timestamps, timestamps[1:])]
-    if not lastFrameDuration:
-        lastFrameDuration = frameDurations[-1]
-    frameDurations.append(lastFrameDuration)
-    return frameDurations
+    frame_durations = [x_t2 - x_t1 for x_t1, x_t2 in zip(timestamps, timestamps[1:])]
+    if not last_frame_duration:
+        last_frame_duration = frame_durations[-1]
+    frame_durations.append(last_frame_duration)
+    return frame_durations
 
-
-def reshapeFlattenedFrames(array):
+def reshape_flattened_frames(array):
     """
     Reshapes array shaped [frames, height*width] into array of shape [frames, height, width]
 
     Parameters
     ----------
     array : np.array
-         flattened array (frames, height, width)
+         flattened array (frames, height*width)
 
     Returns
     -------
@@ -281,6 +280,32 @@ def reshapeFlattenedFrames(array):
     height = int(elements ** (1 / 2))
     width = height
     return array.reshape((-1, height, width))
+
+def crop_center(array, crop_height, crop_width):
+    """
+    Crops the center portion of an infrared sensor array image sequence.
+
+
+    Parameters
+    ---------
+    array : np.array
+        (frames, height, width)
+    crop_height : int
+        height of the cropped patch, if -1 then equal to input's height
+    crop_width : int
+        width of the cropped patch, if -1 then equal to input's width
+
+    Returns
+    -------
+    np.array
+        cropped array (frames, crop_height, crop_width)
+    """
+    _, height, width = array.shape
+    crop_height = height if (crop_height == -1) else crop_height
+    start_y = height//2 - crop_height//2
+    crop_width = width if (crop_width == -1) else crop_width
+    start_x = width//2 - crop_width//2
+    return array[:, start_y:start_y+crop_height, start_x:start_x+crop_width]
 
 
 if __name__ == "__main__":
@@ -304,6 +329,19 @@ if __name__ == "__main__":
         help="Write bitmaps to a directory named same as the processed file",
         action="store_true",
     )
+    parser.add_argument(
+        "--crop",
+        dest="crop",
+        help="Crop a rectangular patch of size (crop, crop) from the center of an array",
+        type=int,
+        default=-1
+    )
+    parser.add_argument(
+        "--overwrite",
+        dest="overwrite",
+        help="Overwrite file if it exists",
+        action="store_true",
+    )
     args = parser.parse_args()
     dir_path, file_path = None, None
     if os.path.isdir(args.object):
@@ -311,7 +349,7 @@ if __name__ == "__main__":
     elif os.path.isfile(args.object):
         file_path = os.path.abspath(args.object)
 
-    def txtFunctions(txt_fp, gif=False, csv=False, bmp=False, **args):
+    def txtFunctions(txt_fp, gif=False, csv=False, bmp=False, crop=-1, overwrite=False, **args):
         def init(txt_fp, ext):
             parent, txt_fn = os.path.split(txt_fp)
             fn = txt_fn.split(".TXT")[0]
@@ -319,27 +357,32 @@ if __name__ == "__main__":
             ext_fn = fn + ext
             ext_fp = os.path.join(parent, ext_fn)
             if os.path.exists(ext_fp):
-                return None
+                if not overwrite:
+                    print("{} already exists, aborting conversion".format(ext_fn))
+                    return None
             print("Converting {} to {}".format(txt_fn, ext_fn))
             return ext_fp
 
         array, timestamps = txt2np(txt_fp)
-
+        # NO CROPPING HERE! CSV SHOULD NOT BE CROPPED!
         if csv:
             csv_fp = init(txt_fp, ".csv")
             if csv_fp:
-                npWriteCsv(csv_fp, array, timestamps)
+                write_np2csv(csv_fp, array, timestamps)
+
+        cropped_array = crop_center(array, crop, crop)
         if gif:
             gif_fp = init(txt_fp, ".gif")
             if gif_fp:
-                pc = np2pc(array)
-                pcWriteGif(pc, gif_fp, duration=timestamps2frameDurations(timestamps))
+                pc = np2pc(cropped_array)
+                write_pc2gif(pc, gif_fp, duration=timestamps2frame_durations(timestamps))
         if bmp:
             parent, txt_fn = os.path.split(txt_fp)
             fn = txt_fn.split(".TXT")[0]
             dest = fn
-            print("Extracting frames...")
-            saveFrames(np2pc(array), os.path.join(parent, dest))
+            if init(txt_fp, ""):
+                print("Extracting frames...")
+                save_frames(np2pc(cropped_array), os.path.join(parent, dest))
         return
 
     if dir_path:
