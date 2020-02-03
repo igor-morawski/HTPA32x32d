@@ -65,7 +65,8 @@ def txt2np(filepath: str, array_size: int = 32):
 
 def write_np2csv(output_fp: str, array, timestamps: list) -> bool:
     """
-    Convert and save Heimann HTPA NumPy array shaped [frames, height, width] to .CSV dataframe
+    Convert and save Heimann HTPA NumPy array shaped [frames, height, width] to .CSV dataframe.
+    CSV should preferably represent the data collected without preprocessing, cropping or any data manipulation.  
 
     Parameters
     ----------
