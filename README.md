@@ -5,7 +5,7 @@ This repository contains tools to work with thermopile sensor array Heimann HTPA
 Thermopile sensor array is an extremely low-resolution far-infrared imaging sensor (camera). This sensor can preserve the privacy of people captured, so I use this sensor in my on-going research on using thermopile sensor arrays in monitoring systems capable of early event detection/risk assessment/accident prevention.
 
 ## Learn more
-You can learn about the sensor more by visiting [Heimann Sensor's website](https://www.heimannsensor.com/products_imaging.php), or you can learn more about me and my research [on my website][https://igor-morawski.github.io/].
+You can learn about the sensor more by visiting [Heimann Sensor's website](https://www.heimannsensor.com/products_imaging.php), or you can learn more about me and my research [on my website](https://igor-morawski.github.io/).
 
 Feel free to [contact me](https://www.linkedin.com/in/igor-morawski/) if you have any questions about the sensor or the research.
 
