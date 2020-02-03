@@ -1,5 +1,7 @@
-
-
+'''
+Converts all TXT files in a given directory or a given file.
+Call python converter.py --help to learn more.
+'''
 import argparse
 import glob
 import os

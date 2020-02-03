@@ -1,10 +1,10 @@
 """
-Tools for Heimann HTPA recordings. 
+A collection of useful functions and data structures for working with data captured by Heimann HTPA32x32d and other thermopile sensor arrays.
 
 Data types:
     * txt - Heimann HTPA recordings in *.TXT,
     * np - NumPy array of thermopile sensor array data, shaped [frames, height, width],
-    * csv - thermopile sensor array data in *.csv format, NOT a pandas dataframe!
+    * csv - thermopile sensor array data in *.csv file, NOT a pandas dataframe!
     * df - pandas dataframe,
     * pc - NumPy array of pseudocolored thermopile sensor array data, shaped [frames, height, width, channels],
 """
@@ -21,8 +21,6 @@ PD_DTYPE = np.float32
 READ_CSV_ARGS = {"skiprows": 1}
 PD_TIME_COL = "Time (sec)"
 PD_PTAT_COL = "PTAT"
-
-# TODO: np -> array (naming convention)
 
 
 def txt2np(filepath: str, array_size: int = 32):
@@ -50,7 +48,7 @@ def txt2np(filepath: str, array_size: int = 32):
             line = f.readline()
             if line:
                 split = line.split(" ")
-                frame = split[0 : array_size ** 2]
+                frame = split[0: array_size ** 2]
                 timestamp = split[-1]
                 frame = np.array([int(T) for T in frame], dtype=DTYPE)
                 frame = frame.reshape([array_size, array_size], order="F")
@@ -146,7 +144,6 @@ def apply_heatmap(array, cv_colormap: int = cv2.COLORMAP_JET) -> np.ndarray:
 
 
 def np2pc(array, cv_colormap: int = cv2.COLORMAP_JET) -> np.ndarray:
-
     """
     Applies pseudocoloring (heatmap) to a sequence of thermal distribution. Same as apply_heatmap().
     np2pc() is preffered.
@@ -163,9 +160,6 @@ def np2pc(array, cv_colormap: int = cv2.COLORMAP_JET) -> np.ndarray:
          (frames, height, width, channels)
     """
     return apply_heatmap(array, cv_colormap)
-
-
-# TODO heatmap -> pc
 
 
 def save_frames(array, dir_name: str, extension: str = ".bmp") -> bool:
@@ -243,7 +237,7 @@ def write_pc2gif(array, fp: str, fps=10, loop: int = 0, duration=None):
 def timestamps2frame_durations(timestamps: list, last_frame_duration=None) -> list:
     """
     Produces frame durations list to make gifs produced with write_pc2gif() more accurate temporally, 
-    # TODO 
+    
     Parameters
     ----------
     timestamps : list
@@ -257,11 +251,13 @@ def timestamps2frame_durations(timestamps: list, last_frame_duration=None) -> li
     list
         List of frame durations.
     """
-    frame_durations = [x_t2 - x_t1 for x_t1, x_t2 in zip(timestamps, timestamps[1:])]
+    frame_durations = [x_t2 - x_t1 for x_t1,
+                       x_t2 in zip(timestamps, timestamps[1:])]
     if not last_frame_duration:
         last_frame_duration = frame_durations[-1]
     frame_durations.append(last_frame_duration)
     return frame_durations
+
 
 def reshape_flattened_frames(array):
     """
@@ -281,6 +277,7 @@ def reshape_flattened_frames(array):
     height = int(elements ** (1 / 2))
     width = height
     return array.reshape((-1, height, width))
+
 
 def crop_center(array, crop_height, crop_width):
     """
@@ -376,7 +373,8 @@ if __name__ == "__main__":
             gif_fp = init(txt_fp, ".gif")
             if gif_fp:
                 pc = np2pc(cropped_array)
-                write_pc2gif(pc, gif_fp, duration=timestamps2frame_durations(timestamps))
+                write_pc2gif(
+                    pc, gif_fp, duration=timestamps2frame_durations(timestamps))
         if bmp:
             parent, txt_fn = os.path.split(txt_fp)
             fn = txt_fn.split(".TXT")[0]
@@ -392,4 +390,3 @@ if __name__ == "__main__":
     if file_path:
         txt_fp = file_path
         txtFunctions(txt_fp, **vars(args))
-

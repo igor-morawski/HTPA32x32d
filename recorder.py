@@ -1,5 +1,6 @@
 """
-UDP module for Heimannn HTPA32x32d, multiple sensors (tested up to 3) #TODO
+Python program that connects to Heimann HTPA sensors given their IP addresses (in settings file) and records data captured to TXT files. 
+Supports recording mutliple sensors at the same time. This tool is supposed to help developing multi-view thermopile sensor array monitoring system.
 """
 import socket
 import os
@@ -27,7 +28,17 @@ HTPA32x32d_BYTE_FORMAT = "<h"  # Little-Endian b
 
 def order_packets(a, b):
     """
-    TODO
+    Checks if packets are of different lengths and, if yes, orders a pair of packets received.
+
+    Parameters
+    ----------
+    a, b : packets (buffers)
+        A pair of packets containing one frame captured by HTPA 32x32d.
+
+    Returns
+    -------
+    tuple 
+        A pair of ordered packets containing one frame captured by HTPA 32x32d (packet1, packet2).
     """
     packet1 = a if (len(a) == HTPA32x32d_PACKET1_LEN) else b if (
         len(b) == HTPA32x32d_PACKET1_LEN) else None
@@ -38,7 +49,17 @@ def order_packets(a, b):
 
 def decode_packets(packet1, packet2) -> str:
     """
-    TODO
+    Decodes a pair 
+
+    Parameters
+    ----------
+    packet1, packet2 : packets (buffers)
+        A pair of ordered packets containing one frame captured by HTPA 32x32d.
+
+    Returns
+    -------
+    str 
+        Decoded space-delimited temperature values in [1e2 deg. Celsius] (consistent with Heimann's data structure)
     """
     packet = packet1 + packet2
     packet_txt = ""
@@ -168,7 +189,7 @@ class Recorder(threading.Thread):
             # TODO WRITER!!!
             with open(self.fp, 'a') as file:
                 file.write("{}t: {:.2f}\n".format(packet_str, timestamp))
-            
+
         # CLEANUP !!!
         self.sock.sendto(HTPA_RELEASE_MSG.encode(), self.device.address)
         print("Terminated HTPA {}".format(self.device.ip))
@@ -235,7 +256,7 @@ global_T0_YYYYMMDD = "{:04d}{:02d}{:02d}".format(
     global_T0_strct.tm_year, global_T0_strct.tm_mon, global_T0_strct.tm_mday)
 global_T0_YYYYMMDD_HHMM = "{:04d}{:02d}{:02d}_{:02d}{:02d}".format(global_T0_strct.tm_year,
                                                                    global_T0_strct.tm_mon, global_T0_strct.tm_mday,
-                                                                    global_T0_strct.tm_hour, 
-                                                                    global_T0_strct.tm_min)
+                                                                   global_T0_strct.tm_hour,
+                                                                   global_T0_strct.tm_min)
 if __name__ == "__main__":
     main()

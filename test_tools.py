@@ -209,6 +209,7 @@ class TestreshapingFrames(unittest.TestCase):
         reshaped_result = tools.reshape_flattened_frames(flattened_result)
         self.assertTrue(np.array_equal(input, reshaped_result))
 
+
 class Test_crop_center(unittest.TestCase):
     def test_shapes(self):
         a1 = np.zeros((5, 32, 32))
@@ -225,23 +226,25 @@ class Test_crop_center(unittest.TestCase):
         a4_result = tools.crop_center(a4, *result2_2D_shape)
         self.assertEqual(a3_result.shape[1:], result2_2D_shape)
         self.assertEqual(a4_result.shape[1:], result2_2D_shape)
+
     def test_result(self):
         array_shape = (2, 6, 6)
         array = np.arange(np.prod(array_shape)).reshape(array_shape)
-        result_2D_shape = (4,4)
+        result_2D_shape = (4, 4)
         result = tools.crop_center(array, *result_2D_shape)
         expected_result = np.array([
             [[7, 8, 9, 10],
-            [13, 14, 15, 16], 
-            [19, 20, 21, 22], 
-            [25, 26, 27, 28]],
+             [13, 14, 15, 16],
+             [19, 20, 21, 22],
+             [25, 26, 27, 28]],
 
             [[43, 44, 45, 46],
-            [49, 50, 51, 52], 
-            [55, 56, 57, 58], 
-            [61, 62, 63, 64]]
+             [49, 50, 51, 52],
+             [55, 56, 57, 58],
+             [61, 62, 63, 64]]
         ])
         self.assertTrue(np.array_equal(result, expected_result))
+
     def test_no_crop(self):
         array_shape = (3, 32, 53)
         array = np.arange(np.prod(array_shape)).reshape(array_shape)
@@ -249,6 +252,7 @@ class Test_crop_center(unittest.TestCase):
         result = tools.crop_center(array, *result_2D_shape)
         expected_result = array
         self.assertTrue(np.array_equal(result, expected_result))
+
     def test_minus1_crop(self):
         array_shape = (3, 32, 53)
         height = array_shape[1]
@@ -263,4 +267,3 @@ class Test_crop_center(unittest.TestCase):
         self.assertTrue(np.array_equal(result2, expected_result))
         self.assertTrue(np.array_equal(result3, expected_result))
         self.assertTrue(np.array_equal(result4, expected_result))
-
