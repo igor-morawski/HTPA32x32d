@@ -13,7 +13,7 @@ Feel free to [contact me](https://www.linkedin.com/in/igor-morawski/) if you hav
 A collection of useful functions and data structures for working with data captured by Heimann HTPA32x32d and other thermopile sensor arrays. 
 
 ## recorder.py
-Python program that connects to Heimann HTPA sensors and records data captured to TXT files. Supports recording mutliple sensors at the same time. This tool is supposed to help developing multi-view thermopile sensor array monitoring system.
+Python program that connects to Heimann HTPA sensors given their IP addresses (in settings file) and records data captured to TXT files. Supports recording mutliple sensors at the same time. This tool is supposed to help developing multi-view thermopile sensor array monitoring system.
 
 ## converter.py
 Python program that converts TXT files recorded by Heimann HTPA sensors and 
