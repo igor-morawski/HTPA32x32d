@@ -19,18 +19,20 @@ Python program that connects to Heimann HTPA sensors and records data captured t
 Python program that converts TXT files recorded by Heimann HTPA sensors and 
 
 To get help run (depedning on the OS, you might need to change `python` to `python3`):
-    python converter.py --help
-
-Usage example:
 ```
-    python converter.py --csv --gif --bmp --crop=26 --overwrite DIRECTORY_CONTAINING_FILES__OR__SINGLE_FILE_PATH
+python converter.py --help
+```
+
+### Usage example
+```
+python converter.py --csv --gif --bmp --crop=26 --overwrite DIRECTORY_CONTAINING_FILES__OR__SINGLE_FILE_PATH
 ```
 Equivalent to:
 ```
-    python converter.py -c -g -b --crop=26 --overwrite DIRECTORY_CONTAINING_FILES__OR__SINGLE_FILE_PATH
+python converter.py -c -g -b --crop=26 --overwrite DIRECTORY_CONTAINING_FILES__OR__SINGLE_FILE_PATH
 ```
 
-Explenation:
+#### Explenation:
 
 Converts all TXT files in a given directory or a given file:
 
