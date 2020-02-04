@@ -80,7 +80,8 @@ if __name__ == "__main__":
             dest = fn
             if init(txt_fp, ""):
                 print("Extracting frames...")
-                tools.save_frames(tools.np2pc(cropped_array), os.path.join(parent, dest))
+                tools.save_frames(tools.np2pc(cropped_array),
+                                  os.path.join(parent, dest))
         return
 
     if dir_path:

@@ -13,6 +13,7 @@ import pandas as pd
 import cv2
 import os
 import imageio
+from scipy.spatial.distance import cdist
 
 DTYPE = "float32"
 PD_SEP = ","
@@ -36,6 +37,8 @@ def txt2np(filepath: str, array_size: int = 32):
     -------
     np.array
         3D array of temperature distribution sequence, shaped [frames, height, width].
+    list
+        list of timestamps
     """
     with open(filepath) as f:
         # discard the first line
@@ -304,6 +307,19 @@ def crop_center(array, crop_height, crop_width):
     crop_width = width if (crop_width == -1) else crop_width
     start_x = width//2 - crop_width//2
     return array[:, start_y:start_y+crop_height, start_x:start_x+crop_width]
+
+def match_timesteps(*timestamps_lists):
+    #TODO ''' '''
+    ts_list = [np.array(ts).reshape(-1,1) for ts in timestamps_lists]
+    min_len_idx = np.array([len(ts) for ts in ts_list]).argmin()
+    min_len_ts = ts_list[min_len_idx]
+    indices_list = [None] * len(ts_list)
+    for idx, ts in enumerate(ts_list):
+        if (idx == min_len_idx):
+            indices_list[idx] = list(range(len(min_len_ts)))
+        else:
+            indices_list[idx] = list(cdist(min_len_ts, ts).argmin(axis=-1))
+    return indices_list
 
 
 if __name__ == "__main__":

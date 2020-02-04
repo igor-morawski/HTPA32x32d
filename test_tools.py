@@ -267,3 +267,29 @@ class Test_crop_center(unittest.TestCase):
         self.assertTrue(np.array_equal(result2, expected_result))
         self.assertTrue(np.array_equal(result3, expected_result))
         self.assertTrue(np.array_equal(result4, expected_result))
+    
+
+class Test_match_timesteps(unittest.TestCase):
+    def test_3_lists(self):
+        ts1 = [1, 2, 3, 4, 5]
+        ts2 = [1.1, 2.1, 2.9, 3.6, 5.1, 6, 6.1]
+        ts3 = [0.9, 1.2, 2, 3, 4.1, 4.2, 4.3, 4.9]
+        results = tools.match_timesteps(ts1, ts2, ts3)
+        expected_results = [None] * 3
+        expected_results[0] = [0, 1, 2, 3, 4]
+        expected_results[1] = [0, 1, 2, 3, 4]
+        expected_results[2] = [0, 2, 3, 4, 7]
+        self.assertEqual(results, expected_results)
+        results = tools.match_timesteps(ts2, ts1, ts3)
+        expected_results[0] = [0, 1, 2, 3, 4]
+        expected_results[1] = [0, 1, 2, 3, 4]
+        expected_results[2] = [0, 2, 3, 4, 7]
+        self.assertEqual(results, expected_results)
+        results = tools.match_timesteps(ts3, ts1, ts2, ts3, ts2)
+        expected_results = [None] * 5
+        expected_results[0] = [0, 2, 3, 4, 7]
+        expected_results[1] = [0, 1, 2, 3, 4]
+        expected_results[2] = [0, 1, 2, 3, 4]
+        expected_results[3] = [0, 2, 3, 4, 7]
+        expected_results[4] = [0, 1, 2, 3, 4]
+        self.assertEqual(results, expected_results)
