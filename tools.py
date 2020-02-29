@@ -325,6 +325,7 @@ def resample_np_tuples(arrays, indices=None, step=None):
     """
     Resampling for 3D arrays
     #TODO
+    #TODO START, STOP
     """
     if step:
         return [array[range(0, len(array), step)] for array in arrays]
@@ -341,6 +342,7 @@ def resample_timestamps(timestamps, indices=None, step=None):
     """
     Resampling for timestamps
     #TODO
+    #TODO START, STOP
     """
     ts_array = [np.array(ts) for ts in timestamps]
     return [list(ts) for ts in resample_np_tuples(ts_array, indices, step)]
