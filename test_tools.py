@@ -293,3 +293,52 @@ class Test_match_timesteps(unittest.TestCase):
         expected_results[3] = [0, 2, 3, 4, 7]
         expected_results[4] = [0, 1, 2, 3, 4]
         self.assertEqual(results, expected_results)
+
+class Test_resample_np_tuples(unittest.TestCase):
+    def test_indices(self):
+        a1 = np.arange(4*10).reshape((-1,2,2))
+        a2 = np.arange(4*10).reshape((-1,2,2))
+        a3 = np.arange(4*10).reshape((-1,2,2))*5
+        a_tuple = [a1, a2, a3]
+        indices = [[0, 2, 5], [0, 1, 3], [0, 1, 3]]
+        result = tools.resample_np_tuples(a_tuple, indices=indices)
+        expected_result1 = np.array([[[0, 1], [2, 3]], [[8, 9], [10, 11]], [[20, 21], [22, 23]]])
+        expected_result2 = np.array([[[0, 1], [2, 3]], [[4, 5], [6, 7]], [[12, 13], [14, 15]]])
+        expected_result3 = np.array([[[0, 1], [2, 3]], [[4, 5], [6, 7]], [[12, 13], [14, 15]]]) * 5
+        expected_result = [expected_result1, expected_result2, expected_result3]
+        self.assertEqual(len(result), len(expected_result))
+        for array, expected_array in zip(result, expected_result):
+            self.assertTrue(np.array_equal(array, expected_array))
+    def test_step(self):
+        a1 = np.arange(4*4).reshape((-1,2,2))
+        a2 = np.arange(4*8).reshape((-1,2,2))
+        a3 = np.arange(4*8).reshape((-1,2,2))*5
+        a_tuple = [a1, a2, a3]
+        result = tools.resample_np_tuples(a_tuple, step=2)
+        expected_result1 = np.array([[[0, 1], [2, 3]], [[8, 9], [10, 11]]])
+        expected_result2 = np.array([[[0, 1], [2, 3]], [[8, 9], [10, 11]], [[16, 17], [18, 19]], [[24, 25], [26, 27]]])
+        expected_result3 = np.array([[[0, 1], [2, 3]], [[8, 9], [10, 11]], [[16, 17], [18, 19]], [[24, 25], [26, 27]]])*5
+        expected_result = [expected_result1, expected_result2, expected_result3]
+        self.assertEqual(len(result), len(expected_result))
+        for array, expected_array in zip(result, expected_result):
+            self.assertTrue(np.array_equal(array, expected_array))
+    def test_none(self):
+        a1 = np.arange(4*4).reshape((-1,2,2))
+        a2 = np.arange(4*8).reshape((-1,2,2))
+        a3 = np.arange(4*8).reshape((-1,2,2))*5
+        a_tuple = [a1, a2, a3]
+        result = tools.resample_np_tuples(a_tuple)
+        expected_result = a_tuple
+        self.assertEqual(len(result), len(expected_result))
+        for array, expected_array in zip(result, expected_result):
+            self.assertTrue(np.array_equal(array, expected_array))
+        result = tools.resample_np_tuples(a_tuple, step=1)
+        expected_result = a_tuple
+        self.assertEqual(len(result), len(expected_result,))
+        for array, expected_array in zip(result, expected_result):
+            self.assertTrue(np.array_equal(array, expected_array))
+        result = tools.resample_np_tuples(a_tuple, indices=[list(range(4)), list(range(8)), list(range(8))])
+        expected_result = a_tuple
+        self.assertEqual(len(result), len(expected_result,))
+        for array, expected_array in zip(result, expected_result):
+            self.assertTrue(np.array_equal(array, expected_array))

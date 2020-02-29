@@ -321,6 +321,22 @@ def match_timesteps(*timestamps_lists):
             indices_list[idx] = list(cdist(min_len_ts, ts).argmin(axis=-1))
     return indices_list
 
+def resample_np_tuples(arrays, indices=None, step=None):
+    """
+    Resampling for 3D arrays
+    #TODO
+    """
+    if step:
+        return [array[range(0, len(array), step)] for array in arrays]
+    if indices:
+        if len(arrays) != len(indices):
+            raise ValueError('Iterables have different lengths')
+        resampled_arrays = []
+        for array, ids in zip(arrays, indices):
+            resampled_arrays.append(array[ids])
+        return resampled_arrays
+    return arrays
+    
 
 if __name__ == "__main__":
     import argparse
