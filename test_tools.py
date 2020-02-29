@@ -342,3 +342,27 @@ class Test_resample_np_tuples(unittest.TestCase):
         self.assertEqual(len(result), len(expected_result,))
         for array, expected_array in zip(result, expected_result):
             self.assertTrue(np.array_equal(array, expected_array))
+
+class Test_resample_timestamps(unittest.TestCase):
+    def test_indices(self):
+        ts1 = [1, 2, 3, 4, 5]
+        ts2 = [1.1, 2.1, 2.9, 3.6, 5.1, 6, 6.1]
+        ts3 = [0.9, 1.2, 2, 3, 4.1, 4.2, 4.3, 4.9]
+        timestamps = [ts1, ts2, ts3]
+        indices = [None] * 3
+        indices[0] = [0, 1, 2, 3, 4]
+        indices[1] = [0, 1, 2, 3, 4]
+        indices[2] = [0, 2, 3, 4, 7]
+        result = tools.resample_timestamps(timestamps, indices=indices)
+        expected_result = [ts1, ts2[:5], [0.9,2.0,3.0,4.1,4.9]]
+        self.assertEqual(result, expected_result)
+    def test_step(self):
+        ts1 = [1, 2, 3, 4, 5]
+        ts2 = [1.1, 2.1, 2.9, 3.6, 5.1, 6, 6.1]
+        ts3 = [0.9, 1.2, 2, 3, 4.1, 4.2, 4.3, 4.9]
+        timestamps = [ts1, ts2, ts3]
+        result = tools.resample_timestamps(timestamps, step=2)
+        expected_result = [[1,3,5], [1.1, 2.9, 5.1, 6.1], [0.9,2, 4.1, 4.3]]
+        self.assertEqual(result, expected_result)
+    
+    

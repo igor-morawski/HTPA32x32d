@@ -336,7 +336,14 @@ def resample_np_tuples(arrays, indices=None, step=None):
             resampled_arrays.append(array[ids])
         return resampled_arrays
     return arrays
-    
+
+def resample_timestamps(timestamps, indices=None, step=None):
+    """
+    Resampling for timestamps
+    #TODO
+    """
+    ts_array = [np.array(ts) for ts in timestamps]
+    return [list(ts) for ts in resample_np_tuples(ts_array, indices, step)]
 
 if __name__ == "__main__":
     import argparse
