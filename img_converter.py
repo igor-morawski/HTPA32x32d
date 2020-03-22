@@ -59,6 +59,8 @@ if __name__ == "__main__":
     def txtFunctions(txt_fp, bmp=False, histogram = False, crop=-1, overwrite=False, bins = None, **args):
         def init(txt_fp, ext, suffix = None):
             parent, txt_fn = os.path.split(txt_fp)
+            if not suffix:
+                suffix = ""
             fn = txt_fn.split(".TXT")[0] + suffix
             txt_fn = fn + ".TXT"
             ext_fn = fn + ext
@@ -84,7 +86,8 @@ if __name__ == "__main__":
                 tools.save_temperature_histogram(array, fp=hist_fp, bins=bins)            
         return
 
-    args.bins=np.arange(*[float(val) for val in args.bins.split(',')])        
+    if args.bins:
+        args.bins=np.arange(*[float(val) for val in args.bins.split(',')])        
 
     if dir_path:
         for txt_fp in glob.glob(os.path.join(dir_path, "*.TXT")):

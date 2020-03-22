@@ -76,20 +76,20 @@ def main():
         # dir and fn
         directory_path = global_T0_YYYYMMDD
         Path(directory_path).mkdir(parents=True, exist_ok=True)
-        recorders = []
+        caps = []
         for device in devices:
             fn = "{}_ID{}.TXT".format(
                 global_T0_YYYYMMDD_HHMM, device.ip.split(".")[-1])
             fp = os.path.join(directory_path, fn)
-            recorders.append(htpa32x32d_udp.Recorder(device, fp, global_T0))
+            caps.append(htpa32x32d_udp.Cap(device, fp, global_T0))
         try:
-            for recorder in recorders:
-                recorder.start()
+            for cap in caps:
+                cap.start()
             while True:
                 time.sleep(0.5)
         except htpa32x32d_udp.ServiceExit:
-            for recorder in recorders:
-                recorder.shutdown_flag.set()
+            for cap in caps:
+                cap.shutdown_flag.set()
 
 
 global_T0 = time.time()

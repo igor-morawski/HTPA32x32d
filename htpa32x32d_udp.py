@@ -227,9 +227,9 @@ class Cap(threading.Thread):
                 continue
             packet_str = decode_packets(*order_packets(packet_a, packet_b))
             # TODO CAMERA!!!
-            current_fp = self.fp_prefix + "_{:02d}".format(photo_idx) + self.fp_extension
+            current_fp = self.fp_prefix + "_{:02d}".format(photo_idx) + "." + self.fp_extension
             with open(current_fp, 'w') as file:
-                file.write("{}t: {:.2f}\n".format(packet_str, timestamp))
+                file.write("HTPA32x32d\n{}t: {:.2f}\n".format(packet_str, timestamp))
             print('{} saved.'.format(current_fp))
             
         self.sock.sendto(HTPA_RELEASE_MSG.encode(), self.device.address)
