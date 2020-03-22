@@ -360,6 +360,7 @@ def save_temperature_histogram(array, fp = "histogram.png", bins = None, xlabel 
     plt.title(title)
     plt.grid(grid)
     plt.savefig(fp)
+    plt.close('all')
     return True
 
 def resample_timestamps(timestamps, indices=None, step=None):
