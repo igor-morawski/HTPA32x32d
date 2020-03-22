@@ -14,6 +14,8 @@ import cv2
 import os
 import imageio
 from scipy.spatial.distance import cdist
+import matplotlib.pyplot as plt
+
 
 DTYPE = "float32"
 PD_SEP = ","
@@ -337,6 +339,28 @@ def resample_np_tuples(arrays, indices=None, step=None):
             resampled_arrays.append(array[ids])
         return resampled_arrays
     return arrays
+
+def save_temperature_histogram(array, fp = "histogram.png", bins = None, xlabel = 'Temperature grad. C', ylabel = 'Number of pixels', title = 'Histogram of temperature', grid = True):
+    """
+    Saves a histogram of measured temperatures
+
+
+    Parameters
+    ---------
+    array : np.array
+        (frames, height, width)
+    fp : str
+        filepath to save plotted histogram to
+    bins, xlabel, ylabel, title, grid
+        as in pyplot
+    """
+    hist = plt.hist(array.flatten(), bins = bins)
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+    plt.title(title)
+    plt.grid(grid)
+    plt.savefig(fp)
+    return True
 
 def resample_timestamps(timestamps, indices=None, step=None):
     """
