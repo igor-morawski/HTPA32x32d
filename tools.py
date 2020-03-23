@@ -310,9 +310,10 @@ def crop_center(array, crop_height, crop_width):
     start_x = width//2 - crop_width//2
     return array[:, start_y:start_y+crop_height, start_x:start_x+crop_width]
 
+
 def match_timesteps(*timestamps_lists):
     #TODO ''' '''
-    ts_list = [np.array(ts).reshape(-1,1) for ts in timestamps_lists]
+    ts_list = [np.array(ts).reshape(-1, 1) for ts in timestamps_lists]
     min_len_idx = np.array([len(ts) for ts in ts_list]).argmin()
     min_len_ts = ts_list[min_len_idx]
     indices_list = [None] * len(ts_list)
@@ -322,6 +323,7 @@ def match_timesteps(*timestamps_lists):
         else:
             indices_list[idx] = list(cdist(min_len_ts, ts).argmin(axis=-1))
     return indices_list
+
 
 def resample_np_tuples(arrays, indices=None, step=None):
     """
@@ -340,7 +342,8 @@ def resample_np_tuples(arrays, indices=None, step=None):
         return resampled_arrays
     return arrays
 
-def save_temperature_histogram(array, fp = "histogram.png", bins = None, xlabel = 'Temperature grad. C', ylabel = 'Number of pixels', title = 'Histogram of temperature', grid = True):
+
+def save_temperature_histogram(array, fp="histogram.png", bins=None, xlabel='Temperature grad. C', ylabel='Number of pixels', title='Histogram of temperature', grid=True, mu=False, sigma=False):
     """
     Saves a histogram of measured temperatures
 
@@ -354,14 +357,17 @@ def save_temperature_histogram(array, fp = "histogram.png", bins = None, xlabel 
     bins, xlabel, ylabel, title, grid
         as in pyplot
     """
-    hist = plt.hist(array.flatten(), bins = bins)
+    data = array.flatten()
+    hist = plt.hist(data, bins=bins)
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
-    plt.title(title)
+    text = r'{}{}{}'.format('$\mu={0:.2f} \degree C$'.format(data.mean()) if mu else '', ', ' if (mu and sigma) else '', '$\sigma={0:.2f} \degree C$'.format(data.std()) if sigma else '')
+    plt.title("{} {}".format(title, text))
     plt.grid(grid)
     plt.savefig(fp)
     plt.close('all')
     return True
+
 
 def resample_timestamps(timestamps, indices=None, step=None):
     """
@@ -371,6 +377,7 @@ def resample_timestamps(timestamps, indices=None, step=None):
     """
     ts_array = [np.array(ts) for ts in timestamps]
     return [list(ts) for ts in resample_np_tuples(ts_array, indices, step)]
+
 
 if __name__ == "__main__":
     import argparse

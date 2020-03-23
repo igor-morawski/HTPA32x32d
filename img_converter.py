@@ -56,7 +56,7 @@ if __name__ == "__main__":
     elif os.path.isfile(args.object):
         file_path = os.path.abspath(args.object)
 
-    def txtFunctions(txt_fp, bmp=False, histogram = False, crop=-1, overwrite=False, bins = None, **args):
+    def txtFunctions(txt_fp, bmp=False, histogram = False, crop=-1, overwrite=False, bins = None, mu = True, sigma = True, **args):
         def init(txt_fp, ext, suffix = None):
             parent, txt_fn = os.path.split(txt_fp)
             if not suffix:
@@ -83,7 +83,7 @@ if __name__ == "__main__":
         if histogram:
             hist_fp = init(txt_fp, ".png", suffix = "_histogram")
             if hist_fp:
-                tools.save_temperature_histogram(array, fp=hist_fp, bins=bins)            
+                tools.save_temperature_histogram(array, fp=hist_fp, bins=bins, mu = mu, sigma = sigma)            
         return
 
     if args.bins:
