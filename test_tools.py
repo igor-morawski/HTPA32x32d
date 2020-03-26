@@ -63,7 +63,6 @@ class TestTxt2np(unittest.TestCase):
 
 class Testwrite_np2csv(unittest.TestCase):
     def test_Result(self):
-        _init()
         expected_array = np.load(EXPECTED_NP_FP)
         timestamps = [170.093, 170.218, 170.343]
         csv_fp = os.path.join(TMP_PATH, "file.csv")
@@ -78,10 +77,18 @@ class Testwrite_np2csv(unittest.TestCase):
         self.assertTrue(np.array_equal(array, expected_array))
         _cleanup([csv_fp])
 
+class Testwrite_np2pickle(unittest.TestCase):
+    def test_Result(self):
+        array = np.load(EXPECTED_NP_FP)
+        timestamps = [170.093, 170.218, 170.343]
+        pickle_fp = os.path.join(TMP_PATH, "file.pickle")
+        tools.write_np2pickle(pickle_fp, array, timestamps)
+        self.assertTrue(os.path.isfile(pickle_fp))
+        _cleanup([pickle_fp])
+
 
 class Testwrite_pc2gif(unittest.TestCase):
     def test_Defaults(self):
-        _init()
         gif_fp = os.path.join(TMP_PATH, "tmp.gif")
         temperature_array = np.load(EXPECTED_NP_FP)
         pc_array = tools.np2pc(temperature_array)

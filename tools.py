@@ -15,6 +15,7 @@ import os
 import imageio
 from scipy.spatial.distance import cdist
 import matplotlib.pyplot as plt
+import pickle
 
 
 DTYPE = "float32"
@@ -25,6 +26,12 @@ READ_CSV_ARGS = {"skiprows": 1}
 PD_TIME_COL = "Time (sec)"
 PD_PTAT_COL = "PTAT"
 
+def ensure_path_exists(path):
+    if not os.path.exists(path):
+        os.makedirs(path)
+
+def ensure_parent_exists(path):
+    ensure_path_exists(os.path.dirname(path))
 
 def txt2np(filepath: str, array_size: int = 32):
     """
@@ -65,6 +72,43 @@ def txt2np(filepath: str, array_size: int = 32):
         frames = np.rot90(frames, k=-1, axes=(1, 2))
     return frames, timestamps
 
+def write_np2pickle(output_fp: str, array, timestamps: list) -> bool:
+    """
+    Convert and save Heimann HTPA NumPy array shaped [frames, height, width] to a pickle file.
+
+    Parameters
+    ----------
+    output_fp : str
+        Filepath to destination file, including the file name.
+    array : np.array
+        Temperatue distribution sequence, shaped [frames, height, width].
+    timestamps : list
+        List of timestamps of corresponding array frames.
+    """
+    ensure_parent_exists(output_fp)
+    with open(output_fp, "wb") as f:
+        pickle.dump((array, timestamps), f)
+    return True
+
+def pickle2np(filepath: str):
+    """
+    Convert Heimann HTPA .txt to NumPy array shaped [frames, height, width].
+
+    Parameters
+    ----------
+    filepath : str
+    array_size : int, optional
+
+    Returns
+    -------
+    np.array
+        3D array of temperature distribution sequence, shaped [frames, height, width].
+    list
+        list of timestamps
+    """
+    with open(filepath, "rb") as f:
+        frames, timestamps = pickle.load(f)
+    return frames, timestamps
 
 def write_np2csv(output_fp: str, array, timestamps: list) -> bool:
     """
@@ -80,6 +124,7 @@ def write_np2csv(output_fp: str, array, timestamps: list) -> bool:
     timestamps : list
         List of timestamps of corresponding array frames.
     """
+    ensure_parent_exists(output_fp)
     # initialize csv template (and append frames later)
     # prepend first row for compability with legacy format
     first_row = pd.DataFrame({"HTPA 32x32d": []})
@@ -231,6 +276,7 @@ def write_pc2gif(array, fp: str, fps=10, loop: int = 0, duration=None):
     bool
         True if success.
     """
+    ensure_parent_exists(fp)
     if not duration:
         duration = 1 / fps
     with imageio.get_writer(fp, mode="I", duration=duration, loop=loop) as writer:
