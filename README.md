@@ -47,3 +47,12 @@ Converts all TXT files in a given directory or a given file:
 
 `--overwrite` overwrites the files if they already exists.
 
+
+```BibTeX
+@misc{im2020HTPA32x32d,
+  author =       {Igor Morawski},
+  title =        {HTPA32x32d tools},
+  howpublished = {\url{https://github.com/igor-morawski/HTPA32x32d/}},
+  year =         {2020}
+}
+```
