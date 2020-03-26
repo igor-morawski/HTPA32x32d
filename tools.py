@@ -26,12 +26,55 @@ READ_CSV_ARGS = {"skiprows": 1}
 PD_TIME_COL = "Time (sec)"
 PD_PTAT_COL = "PTAT"
 
+READERS_EXTENSIONS_DICT = {
+    "txt" : "txt",
+    "csv" : "csv",
+    "pickle" : "pickle",
+    "pkl" : "pickle",
+    "p" : "pickle",
+}
+SUPPORTED_EXTENSIONS = list(READERS_EXTENSIONS_DICT.keys())
+
+def remove_extension(filepath):
+    return filepath.split(".")[0]
+
+def get_extension(filepath):
+    return filepath.split(".")[1]
+
 def ensure_path_exists(path):
     if not os.path.exists(path):
         os.makedirs(path)
 
 def ensure_parent_exists(path):
     ensure_path_exists(os.path.dirname(path))
+
+
+def read_tpa_file(filepath : str, array_size: int = 32):
+    """
+    Convert Heimann HTPA file to NumPy array shaped [frames, height, width].
+    Currently supported: see SUPPORTED_EXTENSIONS flag
+
+    Parameters
+    ----------
+    filepath : str
+    array_size : int, optional (for txt files only)
+
+    Returns
+    -------
+    np.array
+        3D array of temperature distribution sequence, shaped [frames, height, width].
+    list
+        list of timestamps
+    """
+    extension_lowercase = get_extension(filepath).lower()
+    assert (extension_lowercase in SUPPORTED_EXTENSIONS)
+    reader = READERS_EXTENSIONS_DICT[extension_lowercase]
+    if reader == 'txt': 
+        return txt2np(filepath)
+    if reader == 'csv': 
+        return csv2np(filepath)
+    if reader == 'pickle': 
+        return pickle2np(filepath)
 
 def txt2np(filepath: str, array_size: int = 32):
     """
@@ -97,7 +140,6 @@ def pickle2np(filepath: str):
     Parameters
     ----------
     filepath : str
-    array_size : int, optional
 
     Returns
     -------
@@ -147,7 +189,7 @@ def write_np2csv(output_fp: str, array, timestamps: list) -> bool:
     return True
 
 
-def read_csv2np(csv_fp: str):
+def csv2np(csv_fp: str):
     """
     Read and convert .CSV dataframe to a Heimann HTPA NumPy array shaped [frames, height, width]
 

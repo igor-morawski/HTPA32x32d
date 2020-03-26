@@ -9,6 +9,7 @@ import tools
 EXPECTED_TXT_FP = os.path.join("testing", "expected.TXT")
 EXPECTED_NP_FP = os.path.join("testing", "expected.npy")
 EXPECTED_CSV_FP = os.path.join("testing", "expected.csv")
+EXPECTED_PICKLE_FP = os.path.join("testing", "expected.pickle")
 TMP_PATH = os.path.join("testing", "TMP")
 
 
@@ -23,6 +24,7 @@ def _cleanup(files_fp: list = None):
             os.remove(fp)
     if os.path.exists(TMP_PATH):
         os.rmdir(TMP_PATH)
+
 
 
 class TestTxt2np(unittest.TestCase):
@@ -76,6 +78,16 @@ class Testwrite_np2csv(unittest.TestCase):
         array = tools.reshape_flattened_frames(array)
         self.assertTrue(np.array_equal(array, expected_array))
         _cleanup([csv_fp])
+
+
+class Test_csv2np(unittest.TestCase):
+    def test_Result(self):
+        expected_array = np.load(EXPECTED_NP_FP)
+        expected_timestamps = [170.093, 170.218, 170.343]
+        array, timestamps = tools.csv2np(EXPECTED_CSV_FP)
+        self.assertTrue(np.array_equal(array, expected_array))
+        self.assertTrue(np.array_equal(timestamps, expected_timestamps))
+
 
 class Testwrite_np2pickle(unittest.TestCase):
     def test_Result(self):
@@ -371,5 +383,24 @@ class Test_resample_timestamps(unittest.TestCase):
         result = tools.resample_timestamps(timestamps, step=2)
         expected_result = [[1,3,5], [1.1, 2.9, 5.1, 6.1], [0.9,2, 4.1, 4.3]]
         self.assertEqual(result, expected_result)
-    
-    
+
+
+class Test_read_tpa_file(unittest.TestCase):
+    def test_txt(self):
+        expected_array = np.load(EXPECTED_NP_FP)
+        expected_timestamps = [170.093, 170.218, 170.343]
+        array, timestamps = tools.read_tpa_file(EXPECTED_TXT_FP)
+        self.assertTrue(np.array_equal(array, expected_array))
+        self.assertTrue(np.array_equal(timestamps, expected_timestamps))
+    def test_csv(self):
+        expected_array = np.load(EXPECTED_NP_FP)
+        expected_timestamps = [170.093, 170.218, 170.343]
+        array, timestamps = tools.read_tpa_file(EXPECTED_CSV_FP)
+        self.assertTrue(np.array_equal(array, expected_array))
+        self.assertTrue(np.array_equal(timestamps, expected_timestamps))
+    def test_pickle(self):
+        expected_array = np.load(EXPECTED_NP_FP)
+        expected_timestamps = [170.093, 170.218, 170.343]
+        array, timestamps = tools.read_tpa_file(EXPECTED_PICKLE_FP)
+        self.assertTrue(np.array_equal(array, expected_array))
+        self.assertTrue(np.array_equal(timestamps, expected_timestamps))
