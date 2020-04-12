@@ -467,6 +467,61 @@ def resample_timestamps(timestamps, indices=None, step=None):
     return [list(ts) for ts in resample_np_tuples(ts_array, indices, step)]
 
 
+def debug_HTPA32x32d_txt(filepath: str, array_size = 32):
+    """
+    Debug Heimann HTPA .txt by attempting to convert to NumPy array shaped [frames, height, width].
+
+    Parameters
+    ----------
+    filepath : str
+    array_size : int, optional
+
+    Returns
+    -------
+    int
+        line that raises error, -1 if no error
+    """
+    with open(filepath) as f:
+        line_n =1
+        _ = f.readline()
+        line = "dummy line"
+        frames = []
+        timestamps = []
+        while line:
+            line_n += 1
+            line = f.readline()
+            if line:
+                try:
+                    split = line.split(" ")
+                    frame = split[0: array_size ** 2]
+                    timestamp = split[-1]
+                    frame = np.array([int(T) for T in frame], dtype=DTYPE)
+                    frame = frame.reshape([array_size, array_size], order="F")
+                    frame *= 1e-2
+                    frames.append(frame)
+                    timestamps.append(float(timestamp))
+                except:
+                    split = line.split(" ")
+                    frame = split[0: array_size ** 2]
+                    timestamp = split[-1]
+                    T_idx = 0
+                    for T in frame:
+                        try: 
+                            _ = int(T)
+                        except:
+                            break
+                        T_idx += 1
+                    print("{} caused error at line {} (t: {}), bit {} (= {})".format(filepath, line_n, timestamp, T_idx, frame[T_idx]))
+                    for idx in range(-3, 3 + 1):
+                        try:
+                            print("bit {}: {}".format(T_idx-idx, frame[T_idx-idx]))
+                        except:
+                            pass
+                    return line_n
+        frames = np.array(frames)
+        # the array needs rotating 90 CW
+        frames = np.rot90(frames, k=-1, axes=(1, 2))
+    return -1
 if __name__ == "__main__":
     import argparse
     import glob

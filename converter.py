@@ -27,6 +27,12 @@ if __name__ == "__main__":
         action="store_true",
     )
     parser.add_argument(
+        "--debug",
+        dest="debug",
+        help="Debug txts",
+        action="store_true",
+    )
+    parser.add_argument(
         "--crop",
         dest="crop",
         help="Crop a rectangular patch of size (crop, crop) from the center of an array",
@@ -84,9 +90,19 @@ if __name__ == "__main__":
                                   os.path.join(parent, dest))
         return
 
+    if args.debug:
+        if dir_path:
+            for txt_fp in glob.glob(os.path.join(dir_path, "*.TXT")):
+                tools.debug_HTPA32x32d_txt(txt_fp)
+        if file_path:
+            txt_fp = file_path
+            tools.debug_HTPA32x32d_txt(txt_fp)
+        exit()
+
     if dir_path:
         for txt_fp in glob.glob(os.path.join(dir_path, "*.TXT")):
             txtFunctions(txt_fp, **vars(args))
+
     if file_path:
         txt_fp = file_path
         txtFunctions(txt_fp, **vars(args))
