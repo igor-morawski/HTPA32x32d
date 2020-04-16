@@ -49,7 +49,7 @@ def ensure_parent_exists(path):
     ensure_path_exists(os.path.dirname(path))
 
 
-def read_tpa_file(filepath : str, array_size: int = 32):
+def read_tpa_file(filepath: str, array_size: int = 32):
     """
     Convert Heimann HTPA file to NumPy array shaped [frames, height, width].
     Currently supported: see SUPPORTED_EXTENSIONS flag
