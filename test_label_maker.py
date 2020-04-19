@@ -6,7 +6,7 @@ import cv2
 
 import tools
 
-import label_maker.py
+import label_maker
 
 EXPECTED_TXT_FP = os.path.join("testing", "expected.TXT")
 
