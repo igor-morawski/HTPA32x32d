@@ -7,6 +7,11 @@ Data types:
     * csv - thermopile sensor array data in *.csv file, NOT a pandas dataframe!
     * df - pandas dataframe,
     * pc - NumPy array of pseudocolored thermopile sensor array data, shaped [frames, height, width, channels],
+
+Warnings:
+    when converting TXT -> other types the array is rotated 90 deg. CW
+    numpy array order is 'K' 
+    txt array order is 'F'
 """
 import numpy as np
 import pandas as pd
@@ -16,6 +21,11 @@ import imageio
 from scipy.spatial.distance import cdist
 import matplotlib.pyplot as plt
 import pickle
+import itertools
+import json
+import glob
+import collections
+import shutil
 
 
 DTYPE = "float32"
@@ -25,25 +35,30 @@ PD_DTYPE = np.float32
 READ_CSV_ARGS = {"skiprows": 1}
 PD_TIME_COL = "Time (sec)"
 PD_PTAT_COL = "PTAT"
+TPA_PREFIX_TEMPLATE = "YYYYMMDD_HHMM_ID{VIEW_IDENTIFIER}"
 
 READERS_EXTENSIONS_DICT = {
-    "txt" : "txt",
-    "csv" : "csv",
-    "pickle" : "pickle",
-    "pkl" : "pickle",
-    "p" : "pickle",
+    "txt": "txt",
+    "csv": "csv",
+    "pickle": "pickle",
+    "pkl": "pickle",
+    "p": "pickle",
 }
 SUPPORTED_EXTENSIONS = list(READERS_EXTENSIONS_DICT.keys())
+
 
 def remove_extension(filepath):
     return filepath.split(".")[0]
 
+
 def get_extension(filepath):
     return filepath.split(".")[1]
+
 
 def ensure_path_exists(path):
     if not os.path.exists(path):
         os.makedirs(path)
+
 
 def ensure_parent_exists(path):
     ensure_path_exists(os.path.dirname(path))
@@ -69,12 +84,38 @@ def read_tpa_file(filepath: str, array_size: int = 32):
     extension_lowercase = get_extension(filepath).lower()
     assert (extension_lowercase in SUPPORTED_EXTENSIONS)
     reader = READERS_EXTENSIONS_DICT[extension_lowercase]
-    if reader == 'txt': 
+    if reader == 'txt':
         return txt2np(filepath)
-    if reader == 'csv': 
+    if reader == 'csv':
         return csv2np(filepath)
-    if reader == 'pickle': 
+    if reader == 'pickle':
         return pickle2np(filepath)
+
+
+def write_tpa_file(filepath: str, array, timestamps : list) -> bool:
+    """
+    Convert and save Heimann HTPA NumPy array shaped [frames, height, width] to a txt file.
+    Currently supported: see SUPPORTED_EXTENSIONS flag
+
+    Parameters
+    ----------
+    filepath : str
+        Filepath to destination file, including the file name.
+    array : np.array
+        Temperatue distribution sequence, shaped [frames, height, width].
+    timestamps : list
+        List of timestamps of corresponding array frames.
+    """
+    extension_lowercase = get_extension(filepath).lower()
+    assert (extension_lowercase in SUPPORTED_EXTENSIONS)
+    writer = READERS_EXTENSIONS_DICT[extension_lowercase]
+    if writer == 'txt':
+        return write_np2txt(filepath, array, timestamps)
+    if writer == 'csv':
+        return write_np2csv(filepath, array, timestamps)
+    if writer == 'pickle':
+        return write_np2pickle(filepath, array, timestamps)
+
 
 def txt2np(filepath: str, array_size: int = 32):
     """
@@ -115,6 +156,30 @@ def txt2np(filepath: str, array_size: int = 32):
         frames = np.rot90(frames, k=-1, axes=(1, 2))
     return frames, timestamps
 
+def write_np2txt(output_fp: str, array, timestamps: list) -> bool:
+        """
+        Convert and save Heimann HTPA NumPy array shaped [frames, height, width] to a txt file.
+
+        Parameters
+        ----------
+        output_fp : str
+            Filepath to destination file, including the file name.
+        array : np.array
+            Temperatue distribution sequence, shaped [frames, height, width].
+        timestamps : list
+            List of timestamps of corresponding array frames.
+        """
+        ensure_parent_exists(output_fp)
+        frames = np.rot90(array, k=1, axes=(1, 2))
+        with open(output_fp, 'w') as file:
+            file.write('HTPA32x32d\n')
+            for step, t in zip(frames, timestamps):
+                line = ""
+                for val in step.flatten("F"):
+                    line += ("%02.2f"%val).replace(".", "")[:4] + " "
+                file.write("{}t: {}\n".format(line, t))
+        
+
 def write_np2pickle(output_fp: str, array, timestamps: list) -> bool:
     """
     Convert and save Heimann HTPA NumPy array shaped [frames, height, width] to a pickle file.
@@ -132,6 +197,7 @@ def write_np2pickle(output_fp: str, array, timestamps: list) -> bool:
     with open(output_fp, "wb") as f:
         pickle.dump((array, timestamps), f)
     return True
+
 
 def pickle2np(filepath: str):
     """
@@ -151,6 +217,7 @@ def pickle2np(filepath: str):
     with open(filepath, "rb") as f:
         frames, timestamps = pickle.load(f)
     return frames, timestamps
+
 
 def write_np2csv(output_fp: str, array, timestamps: list) -> bool:
     """
@@ -210,7 +277,6 @@ def csv2np(csv_fp: str):
     array = df.drop([PD_TIME_COL, PD_PTAT_COL], axis=1).to_numpy(dtype=DTYPE)
     array = reshape_flattened_frames(array)
     return array, timestamps
-
 
 def apply_heatmap(array, cv_colormap: int = cv2.COLORMAP_JET) -> np.ndarray:
     """
@@ -449,7 +515,8 @@ def save_temperature_histogram(array, fp="histogram.png", bins=None, xlabel='Tem
     hist = plt.hist(data, bins=bins)
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
-    text = r'{}{}{}'.format('$\mu={0:.2f} \degree C$'.format(data.mean()) if mu else '', ', ' if (mu and sigma) else '', '$\sigma={0:.2f} \degree C$'.format(data.std()) if sigma else '')
+    text = r'{}{}{}'.format('$\mu={0:.2f} \degree C$'.format(data.mean()) if mu else '', ', ' if (
+        mu and sigma) else '', '$\sigma={0:.2f} \degree C$'.format(data.std()) if sigma else '')
     plt.title("{} {}".format(title, text))
     plt.grid(grid)
     plt.savefig(fp)
@@ -467,7 +534,7 @@ def resample_timestamps(timestamps, indices=None, step=None):
     return [list(ts) for ts in resample_np_tuples(ts_array, indices, step)]
 
 
-def debug_HTPA32x32d_txt(filepath: str, array_size = 32):
+def debug_HTPA32x32d_txt(filepath: str, array_size=32):
     """
     Debug Heimann HTPA .txt by attempting to convert to NumPy array shaped [frames, height, width].
 
@@ -482,7 +549,7 @@ def debug_HTPA32x32d_txt(filepath: str, array_size = 32):
         line that raises error, -1 if no error
     """
     with open(filepath) as f:
-        line_n =1
+        line_n = 1
         _ = f.readline()
         line = "dummy line"
         frames = []
@@ -506,15 +573,17 @@ def debug_HTPA32x32d_txt(filepath: str, array_size = 32):
                     timestamp = split[-1]
                     T_idx = 0
                     for T in frame:
-                        try: 
+                        try:
                             _ = int(T)
                         except:
                             break
                         T_idx += 1
-                    print("{} caused error at line {} (t: {}), bit {} (= {})".format(filepath, line_n, timestamp, T_idx, frame[T_idx]))
+                    print("{} caused error at line {} (t: {}), bit {} (= {})".format(
+                        filepath, line_n, timestamp, T_idx, frame[T_idx]))
                     for idx in range(-3, 3 + 1):
                         try:
-                            print("bit {}: {}".format(T_idx-idx, frame[T_idx-idx]))
+                            print("bit {}: {}".format(
+                                T_idx-idx, frame[T_idx-idx]))
                         except:
                             pass
                     return line_n
@@ -522,87 +591,232 @@ def debug_HTPA32x32d_txt(filepath: str, array_size = 32):
         # the array needs rotating 90 CW
         frames = np.rot90(frames, k=-1, axes=(1, 2))
     return -1
-if __name__ == "__main__":
-    import argparse
-    import glob
 
-    parser = argparse.ArgumentParser(
-        description="Process .TXT files in a directory passed"
-    )
-    parser.add_argument("object")
-    parser.add_argument(
-        "--gif", "-g", dest="gif", help="Write gifs", action="store_true"
-    )
-    parser.add_argument(
-        "--csv", "-c", dest="csv", help="Write csvs", action="store_true"
-    )
-    parser.add_argument(
-        "--bmp",
-        "-b",
-        dest="bmp",
-        help="Write bitmaps to a directory named same as the processed file",
-        action="store_true",
-    )
-    parser.add_argument(
-        "--crop",
-        dest="crop",
-        help="Crop a rectangular patch of size (crop, crop) from the center of an array",
-        type=int,
-        default=-1
-    )
-    parser.add_argument(
-        "--overwrite",
-        dest="overwrite",
-        help="Overwrite file if it exists",
-        action="store_true",
-    )
-    args = parser.parse_args()
-    dir_path, file_path = None, None
-    if os.path.isdir(args.object):
-        dir_path = os.path.abspath(args.object)
-    elif os.path.isfile(args.object):
-        file_path = os.path.abspath(args.object)
 
-    def txtFunctions(txt_fp, gif=False, csv=False, bmp=False, crop=-1, overwrite=False, **args):
-        def init(txt_fp, ext):
-            parent, txt_fn = os.path.split(txt_fp)
-            fn = txt_fn.split(".TXT")[0]
-            txt_fn = fn + ".TXT"
-            ext_fn = fn + ext
-            ext_fp = os.path.join(parent, ext_fn)
-            if os.path.exists(ext_fp):
-                if not overwrite:
-                    print("{} already exists, aborting conversion".format(ext_fn))
-                    return None
-            print("Converting {} to {}".format(txt_fn, ext_fn))
-            return ext_fp
+class _TPA_Sample():
+    def test_alignment(self):
+        lengths = [len(ts) for ts in self.timestamps]
+        return all(l == lengths[0] for l in lengths)
 
-        array, timestamps = txt2np(txt_fp)
-        # NO CROPPING HERE! CSV SHOULD NOT BE CROPPED!
-        if csv:
-            csv_fp = init(txt_fp, ".csv")
-            if csv_fp:
-                write_np2csv(csv_fp, array, timestamps)
+    def test_synchronization(self, max_error):
+        pairs = itertools.combinations(self.timestamps, 2)
+        for pair in pairs:
+            if (np.abs(np.array(pair[0]) - np.array(pair[1])).max() > max_error):
+                return False
+        return True
 
-        cropped_array = crop_center(array, crop, crop)
-        if gif:
-            gif_fp = init(txt_fp, ".gif")
-            if gif_fp:
-                pc = np2pc(cropped_array)
-                write_pc2gif(
-                    pc, gif_fp, duration=timestamps2frame_durations(timestamps))
-        if bmp:
-            parent, txt_fn = os.path.split(txt_fp)
-            fn = txt_fn.split(".TXT")[0]
-            dest = fn
-            if init(txt_fp, ""):
-                print("Extracting frames...")
-                save_frames(np2pc(cropped_array), os.path.join(parent, dest))
-        return
 
-    if dir_path:
-        for txt_fp in glob.glob(os.path.join(dir_path, "*.TXT")):
-            txtFunctions(txt_fp, **vars(args))
-    if file_path:
-        txt_fp = file_path
-        txtFunctions(txt_fp, **vars(args))
+class TPA_Sample_from_filepaths(_TPA_Sample):
+    """
+    # TODO
+    """
+
+    def __init__(self, filepaths):
+        self.filepaths = filepaths
+        self.ids = [self._read_ID(fp) for fp in self.filepaths]
+        samples = [read_tpa_file(fp) for fp in self.filepaths]
+        self.arrays = [sample[0] for sample in samples]
+        self.timestamps = [sample[1] for sample in samples]
+
+    def _read_ID(self, filepath):
+        fn = os.path.basename(filepath)
+        name = remove_extension(fn)
+        return name.split("ID")[-1]
+
+    def write(self):
+        raise Exception("You are trying to overwrite files. Use TPA_Sample_from_data if you need to modify arrays.")
+
+    def align_timesteps(self):
+        raise Exception("Use TPA_Sample_from_data if you need to modify arrays.")
+
+
+class TPA_Sample_from_data(_TPA_Sample):
+    """
+    # TODO
+    """
+
+    def __init__(self, arrays, timestamps, ids):
+        self.filepaths = None
+        self.ids = ids.copy()
+        self.arrays = arrays.copy()
+        self.timestamps = timestamps.copy()
+
+    def make_filepaths(self, parent_dir, prefix, extension):
+        self.filepaths = [os.path.join(
+            parent_dir, prefix+"ID"+id+"."+extension) for id in self.ids]
+
+    def write(self):
+        assert self.filepaths
+        for fp, array, ts in zip(self.filepaths, self.arrays, self.timestamps):
+            write_tpa_file(fp, array, ts)
+
+    def align_timesteps(self):
+        indexes = match_timesteps(*self.timestamps)
+        for i in range(len(self.ids)):
+            self.arrays[i] = self.arrays[i][indexes[i]]
+            self.timestamps[i] = list(np.array(self.timestamps[i])[indexes[i]])
+        return True
+
+
+def _TPA_get_file_prefix(filepath):
+    name = remove_extension(os.path.basename(filepath))
+    return name.split("ID")[0]
+
+class _TPA_File_Manager():
+    def __init__(self):
+        self.configured = False
+        self._make_log = "make.log"
+        if os.path.exists(self._make_log):
+            os.remove(self._make_log)
+        self._log_msgs = []
+
+    def _log(self, log_msg):
+        print(log_msg)
+        with open(self._make_log, 'a') as f:
+            f.write(log_msg+"\n")
+
+    def _generate_config_template(self, output_json_filepath, fill_dict = None):
+        template = {}
+        for key in self._json_required_keys:
+            template[key] = ""
+        if fill_dict:
+            for key in fill_dict:
+                template[key] = fill_dict[key]
+        with open(output_json_filepath, 'w') as f:
+            json.dump(template, f)
+        return True
+
+    def _validate_config(self):
+        keys_missing = []
+        for key in self._json_required_keys:
+            try:
+                self._json[key]
+            except KeyError:
+                keys_missing.append(key)
+        if len(keys_missing):
+            msg = "Keys required {}".format(self._json_required_keys)
+            self._log(msg)
+            msg = "Keys missing {}".format(keys_missing)
+            self._log(msg)
+            return False
+        return True
+
+class TPA_Preparer(_TPA_File_Manager):
+    def __init__(self):
+        _TPA_File_Manager.__init__(self)
+        self._json_required_keys = ["processed_destination_dir", "view_IDs",
+                                    "raw_input_dir", "labels_filepath", "tpas_extension", "MAKE", "PREPARE"]
+
+
+class TPA_Dataset(_TPA_File_Manager):
+    '''
+    #TODO CALL A TPA_Preparer FIRST
+    '''
+
+    def __init__(self):
+        _TPA_File_Manager.__init__(self)
+        self._json_required_keys = ["dataset_destination_dir", "view_IDs",
+                                    "processed_input_dir", "labels_filepath", "tpas_extension", "MAKE", "PREPARE"]
+
+
+    def config(self, json_filepath):
+        with open(json_filepath) as f:
+            self._json = json.load(f)
+        assert self._validate_config()
+        assert self._json["MAKE"]
+        try:
+            if self._json["PREPARE"]:
+                raise Exception("MAKE and PREPARE flags cannot be set at the same time to TRUE")
+        except KeyError:
+            pass
+        self.dataset_destination_dir = self._json["dataset_destination_dir"]
+        self.view_IDs = self._json["view_IDs"]
+        self.processed_input_dir = self._json["processed_input_dir"]
+        if not os.path.exists(os.path.join(self.processed_input_dir, "tpa.nfo")):
+            raise Exception("{} doesn't exist. Process your data first using TPA_Preparer".format(os.path.join(self.processed_input_dir, "tpa.nfo")))
+        self.labels_filepath = self._json["labels_filepath"]
+        if not os.path.exists(self._json["labels_filepath"]):
+            msg = "Specified label file doesn't exist {}".format(
+                self._json["labels_filepath"])
+            self._log(msg)
+            raise Exception(msg)
+        self.tpas_extension = self._json["tpas_extension"]
+        self.configured = True
+        return True
+
+    def generate_config_template(self, output_json_filepath):
+        self._generate_config_template(output_json_filepath, {"MAKE":1, "PREPARE":0})
+        
+    def make(self):
+        if not self.configured:
+            msg = "Configure with config() first"
+            self._log(msg)
+            raise Exception(msg)
+        ensure_path_exists(self.dataset_destination_dir)
+        glob_patterns = [os.path.join(
+            self.processed_input_dir, "*ID"+id+"."+self.tpas_extension) for id in self.view_IDs]
+        files = []
+        for pattern in glob_patterns:
+            files.extend(glob.glob(pattern))
+        prefixes = [_TPA_get_file_prefix(f) for f in files]
+        prefixes2make = list(set(prefixes))
+        prefixes2make_number0 = len(prefixes2make)
+        # filter out samples that miss views
+        counter = collections.Counter(prefixes)
+        view_number = len(self.view_IDs)
+        for prefix in counter.keys():
+            prefix_view_number = counter[prefix]
+            if (prefix_view_number < view_number):
+                prefixes2make.remove(prefix)
+                self._log('[WARNING] Ignoring prefix {} because it misses {} views'.format(
+                    prefix, view_number-prefix_view_number))
+        # filter out samples that miss a label
+        self._labels = self._read_labels_file(self.labels_filepath)
+        for prefix in prefixes2make:
+            if (prefix not in self._labels):
+                prefixes2make.remove(prefix)
+                self._log('[WARNING] Ignoring prefix {} because it misses a label'.format(
+                    prefix))
+        for prefix in prefixes2make:    
+            if not (type(self._labels[prefix]) == int):
+                prefixes2make.remove(prefix)
+                self._log('[WARNING] Ignoring prefix {} because the label is incorrect (it is not INT)'.format(
+                    prefix))
+        # process the files
+        fps2process = []
+        fps2output = []
+        for prefix in prefixes2make:
+            fp_prefix = os.path.join(self.processed_input_dir, prefix)
+            fp_o_prefix = os.path.join(self.dataset_destination_dir, prefix)
+            fps = []
+            fps_o = []
+            for view_id in self.view_IDs:
+                fp = fp_prefix + "ID" + view_id + "." + self.tpas_extension
+                fp_o = fp_o_prefix + "ID" + view_id + "." + self.tpas_extension
+                fps.append(fp)
+                fps_o.append(fp_o)
+            fps2process.append(fps)
+            fps2output.append(fps_o)
+        prefixes2make_number = len(set(prefixes2make))
+        prefixes_ignored = prefixes2make_number0 - prefixes2make_number
+        self._log("[INFO] {} prefixes ignored out of initial {}".format(
+            prefixes_ignored, prefixes2make_number0))
+        self._log("[INFO] Making dataset...")
+        self._log("[INFO] Copying files...")
+        for src_tuple, dst_tuple in zip(fps2process, fps2output):
+            for src, dst in zip(src_tuple, dst_tuple):
+                shutil.copy2(src, dst)
+        self._log("OK")
+        return True
+
+    def _read_labels_file(self, json_filepath):
+        with open(json_filepath) as f:
+            data = json.load(f)
+        for key in data.keys():
+            if (len(key.split("ID")) > 1):
+                old_key = key
+                new_key = key.split("ID")[0]
+                data[new_key] = data.pop(old_key)
+        return data
+
+

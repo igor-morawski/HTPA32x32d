@@ -1,5 +1,6 @@
 """
 Utility to create and manage dataset of thermopile sensor arrays recordings in multi-view setup and deep learning. 
+You probably want to ignore this file.
 """
 import glob
 import os

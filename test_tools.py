@@ -3,6 +3,8 @@ import numpy as np
 import pandas as pd
 import os
 import cv2
+import json
+import glob
 
 import tools
 
@@ -11,6 +13,16 @@ EXPECTED_NP_FP = os.path.join("testing", "expected.npy")
 EXPECTED_CSV_FP = os.path.join("testing", "expected.csv")
 EXPECTED_PICKLE_FP = os.path.join("testing", "expected.pickle")
 TMP_PATH = os.path.join("testing", "TMP")
+TPA_DS_CONFIG = os.path.join("testing", "testing_config.json")
+TPA_DS_CONFIG_MESSED = os.path.join("testing", "testing_config_messed.json")
+
+
+MV_SAMPLE = [os.path.join("testing", fn) for fn in [
+    "20200415_1438_ID121.TXT", "20200415_1438_ID122.TXT", "20200415_1438_ID123.TXT"]]
+
+
+MV_SAMPLE_MESSED = [os.path.join("testing", fn) for fn in [
+    "20200415_1438_ID121.TXT", "20200415_1438_ID122.TXT", "20200415_1438_ID123_MESSED.TXT"]]
 
 
 def _init():
@@ -24,7 +36,6 @@ def _cleanup(files_fp: list = None):
             os.remove(fp)
     if os.path.exists(TMP_PATH):
         os.rmdir(TMP_PATH)
-
 
 
 class TestTxt2np(unittest.TestCase):
@@ -91,12 +102,31 @@ class Test_csv2np(unittest.TestCase):
 
 class Testwrite_np2pickle(unittest.TestCase):
     def test_Result(self):
-        array = np.load(EXPECTED_NP_FP)
-        timestamps = [170.093, 170.218, 170.343]
+        expected_array = np.load(EXPECTED_NP_FP)
+        expected_timestamps = [170.093, 170.218, 170.343]
         pickle_fp = os.path.join(TMP_PATH, "file.pickle")
-        tools.write_np2pickle(pickle_fp, array, timestamps)
+        tools.write_np2pickle(pickle_fp, expected_array, expected_timestamps)
         self.assertTrue(os.path.isfile(pickle_fp))
+        array, timestamps = tools.pickle2np(pickle_fp)
+        self.assertTrue(np.array_equal(array, expected_array))
+        self.assertTrue(np.array_equal(timestamps, expected_timestamps))
         _cleanup([pickle_fp])
+
+
+class Testwrite_np2txt(unittest.TestCase):
+    def test_Result(self):
+        expected_array = np.load(EXPECTED_NP_FP)
+        expected_timestamps = [170.093, 170.218, 170.343]
+        txt_fp = os.path.join(TMP_PATH, "file.txt")
+        tools.write_np2txt(txt_fp, expected_array, expected_timestamps)
+        self.assertTrue(os.path.isfile(txt_fp))
+        array, timestamps = tools.txt2np(txt_fp)
+        self.assertTrue(np.any(array))
+        self.assertTrue(np.any(timestamps))
+        print(len(np.where((array-expected_array) > 0.01)[0]))
+        self.assertTrue(np.array_equal(array, expected_array))
+        self.assertEqual(timestamps, expected_timestamps)
+        _cleanup([txt_fp])
 
 
 class Testwrite_pc2gif(unittest.TestCase):
@@ -286,7 +316,7 @@ class Test_crop_center(unittest.TestCase):
         self.assertTrue(np.array_equal(result2, expected_result))
         self.assertTrue(np.array_equal(result3, expected_result))
         self.assertTrue(np.array_equal(result4, expected_result))
-    
+
 
 class Test_match_timesteps(unittest.TestCase):
     def test_3_lists(self):
@@ -313,38 +343,48 @@ class Test_match_timesteps(unittest.TestCase):
         expected_results[4] = [0, 1, 2, 3, 4]
         self.assertEqual(results, expected_results)
 
+
 class Test_resample_np_tuples(unittest.TestCase):
     def test_indices(self):
-        a1 = np.arange(4*10).reshape((-1,2,2))
-        a2 = np.arange(4*10).reshape((-1,2,2))
-        a3 = np.arange(4*10).reshape((-1,2,2))*5
+        a1 = np.arange(4*10).reshape((-1, 2, 2))
+        a2 = np.arange(4*10).reshape((-1, 2, 2))
+        a3 = np.arange(4*10).reshape((-1, 2, 2))*5
         a_tuple = [a1, a2, a3]
         indices = [[0, 2, 5], [0, 1, 3], [0, 1, 3]]
         result = tools.resample_np_tuples(a_tuple, indices=indices)
-        expected_result1 = np.array([[[0, 1], [2, 3]], [[8, 9], [10, 11]], [[20, 21], [22, 23]]])
-        expected_result2 = np.array([[[0, 1], [2, 3]], [[4, 5], [6, 7]], [[12, 13], [14, 15]]])
-        expected_result3 = np.array([[[0, 1], [2, 3]], [[4, 5], [6, 7]], [[12, 13], [14, 15]]]) * 5
-        expected_result = [expected_result1, expected_result2, expected_result3]
+        expected_result1 = np.array(
+            [[[0, 1], [2, 3]], [[8, 9], [10, 11]], [[20, 21], [22, 23]]])
+        expected_result2 = np.array(
+            [[[0, 1], [2, 3]], [[4, 5], [6, 7]], [[12, 13], [14, 15]]])
+        expected_result3 = np.array(
+            [[[0, 1], [2, 3]], [[4, 5], [6, 7]], [[12, 13], [14, 15]]]) * 5
+        expected_result = [expected_result1,
+                           expected_result2, expected_result3]
         self.assertEqual(len(result), len(expected_result))
         for array, expected_array in zip(result, expected_result):
             self.assertTrue(np.array_equal(array, expected_array))
+
     def test_step(self):
-        a1 = np.arange(4*4).reshape((-1,2,2))
-        a2 = np.arange(4*8).reshape((-1,2,2))
-        a3 = np.arange(4*8).reshape((-1,2,2))*5
+        a1 = np.arange(4*4).reshape((-1, 2, 2))
+        a2 = np.arange(4*8).reshape((-1, 2, 2))
+        a3 = np.arange(4*8).reshape((-1, 2, 2))*5
         a_tuple = [a1, a2, a3]
         result = tools.resample_np_tuples(a_tuple, step=2)
         expected_result1 = np.array([[[0, 1], [2, 3]], [[8, 9], [10, 11]]])
-        expected_result2 = np.array([[[0, 1], [2, 3]], [[8, 9], [10, 11]], [[16, 17], [18, 19]], [[24, 25], [26, 27]]])
-        expected_result3 = np.array([[[0, 1], [2, 3]], [[8, 9], [10, 11]], [[16, 17], [18, 19]], [[24, 25], [26, 27]]])*5
-        expected_result = [expected_result1, expected_result2, expected_result3]
+        expected_result2 = np.array([[[0, 1], [2, 3]], [[8, 9], [10, 11]], [
+                                    [16, 17], [18, 19]], [[24, 25], [26, 27]]])
+        expected_result3 = np.array([[[0, 1], [2, 3]], [[8, 9], [10, 11]], [
+                                    [16, 17], [18, 19]], [[24, 25], [26, 27]]])*5
+        expected_result = [expected_result1,
+                           expected_result2, expected_result3]
         self.assertEqual(len(result), len(expected_result))
         for array, expected_array in zip(result, expected_result):
             self.assertTrue(np.array_equal(array, expected_array))
+
     def test_none(self):
-        a1 = np.arange(4*4).reshape((-1,2,2))
-        a2 = np.arange(4*8).reshape((-1,2,2))
-        a3 = np.arange(4*8).reshape((-1,2,2))*5
+        a1 = np.arange(4*4).reshape((-1, 2, 2))
+        a2 = np.arange(4*8).reshape((-1, 2, 2))
+        a3 = np.arange(4*8).reshape((-1, 2, 2))*5
         a_tuple = [a1, a2, a3]
         result = tools.resample_np_tuples(a_tuple)
         expected_result = a_tuple
@@ -356,11 +396,13 @@ class Test_resample_np_tuples(unittest.TestCase):
         self.assertEqual(len(result), len(expected_result,))
         for array, expected_array in zip(result, expected_result):
             self.assertTrue(np.array_equal(array, expected_array))
-        result = tools.resample_np_tuples(a_tuple, indices=[list(range(4)), list(range(8)), list(range(8))])
+        result = tools.resample_np_tuples(
+            a_tuple, indices=[list(range(4)), list(range(8)), list(range(8))])
         expected_result = a_tuple
         self.assertEqual(len(result), len(expected_result,))
         for array, expected_array in zip(result, expected_result):
             self.assertTrue(np.array_equal(array, expected_array))
+
 
 class Test_resample_timestamps(unittest.TestCase):
     def test_indices(self):
@@ -373,15 +415,16 @@ class Test_resample_timestamps(unittest.TestCase):
         indices[1] = [0, 1, 2, 3, 4]
         indices[2] = [0, 2, 3, 4, 7]
         result = tools.resample_timestamps(timestamps, indices=indices)
-        expected_result = [ts1, ts2[:5], [0.9,2.0,3.0,4.1,4.9]]
+        expected_result = [ts1, ts2[:5], [0.9, 2.0, 3.0, 4.1, 4.9]]
         self.assertEqual(result, expected_result)
+
     def test_step(self):
         ts1 = [1, 2, 3, 4, 5]
         ts2 = [1.1, 2.1, 2.9, 3.6, 5.1, 6, 6.1]
         ts3 = [0.9, 1.2, 2, 3, 4.1, 4.2, 4.3, 4.9]
         timestamps = [ts1, ts2, ts3]
         result = tools.resample_timestamps(timestamps, step=2)
-        expected_result = [[1,3,5], [1.1, 2.9, 5.1, 6.1], [0.9,2, 4.1, 4.3]]
+        expected_result = [[1, 3, 5], [1.1, 2.9, 5.1, 6.1], [0.9, 2, 4.1, 4.3]]
         self.assertEqual(result, expected_result)
 
 
@@ -392,15 +435,201 @@ class Test_read_tpa_file(unittest.TestCase):
         array, timestamps = tools.read_tpa_file(EXPECTED_TXT_FP)
         self.assertTrue(np.array_equal(array, expected_array))
         self.assertTrue(np.array_equal(timestamps, expected_timestamps))
+
     def test_csv(self):
         expected_array = np.load(EXPECTED_NP_FP)
         expected_timestamps = [170.093, 170.218, 170.343]
         array, timestamps = tools.read_tpa_file(EXPECTED_CSV_FP)
         self.assertTrue(np.array_equal(array, expected_array))
         self.assertTrue(np.array_equal(timestamps, expected_timestamps))
+
     def test_pickle(self):
         expected_array = np.load(EXPECTED_NP_FP)
         expected_timestamps = [170.093, 170.218, 170.343]
         array, timestamps = tools.read_tpa_file(EXPECTED_PICKLE_FP)
         self.assertTrue(np.array_equal(array, expected_array))
         self.assertTrue(np.array_equal(timestamps, expected_timestamps))
+
+class Test_write_tpa_file(unittest.TestCase):
+    def test_txt(self):
+        fp = os.path.join(TMP_PATH, "file.TXT")
+        expected_array = np.load(EXPECTED_NP_FP)
+        expected_timestamps = [170.093, 170.218, 170.343]
+        tools.write_tpa_file(fp, expected_array, expected_timestamps)
+        array, timestamps = tools.read_tpa_file(fp)
+        self.assertTrue(np.array_equal(array, expected_array))
+        self.assertTrue(np.array_equal(timestamps, expected_timestamps))
+        _cleanup([fp])
+
+    def test_csv(self):
+        fp = os.path.join(TMP_PATH, "file.csv")
+        expected_array = np.load(EXPECTED_NP_FP)
+        expected_timestamps = [170.093, 170.218, 170.343]
+        tools.write_tpa_file(fp, expected_array, expected_timestamps)
+        array, timestamps = tools.read_tpa_file(fp)
+        self.assertTrue(np.array_equal(array, expected_array))
+        self.assertTrue(np.array_equal(timestamps, expected_timestamps))
+        _cleanup([fp])
+
+    def test_pickle(self):
+        fp = os.path.join(TMP_PATH, "file.pkl")
+        expected_array = np.load(EXPECTED_NP_FP)
+        expected_timestamps = [170.093, 170.218, 170.343]
+        tools.write_tpa_file(fp, expected_array, expected_timestamps)
+        array, timestamps = tools.read_tpa_file(fp)
+        self.assertTrue(np.array_equal(array, expected_array))
+        self.assertTrue(np.array_equal(timestamps, expected_timestamps))
+        _cleanup([fp])
+
+class Test_class_TPA_Sample_from_filepaths(unittest.TestCase):
+    def test_default_init(self):
+        expected_samples = [tools.read_tpa_file(fp) for fp in MV_SAMPLE]
+        array0, ts0 = tools.txt2np(MV_SAMPLE[0])
+        array1, ts1 = tools.txt2np(MV_SAMPLE[1])
+        array2, ts2 = tools.txt2np(MV_SAMPLE[2])
+        expected_arrays = [array0, array1, array2]
+        expected_timestamps = [ts0, ts1, ts2]
+        expected_ids = ["121", "122", "123"]
+        sample = tools.TPA_Sample_from_filepaths(MV_SAMPLE)
+        self.assertEqual(len(sample.filepaths), 3)
+        self.assertEqual(sample.filepaths, MV_SAMPLE)
+        self.assertEqual(sample.ids, expected_ids)
+        [self.assertTrue(np.array_equal(expected_array, array))
+         for expected_array, array in zip(expected_arrays, sample.arrays)]
+        [self.assertTrue(np.array_equal(expected_ts, ts))
+         for expected_ts, ts in zip(expected_timestamps, sample.timestamps)]
+        sample_messed = tools.TPA_Sample_from_filepaths(MV_SAMPLE_MESSED)
+        self.assertEqual(sample_messed.ids, ["121", "122", "123_MESSED"])
+
+    def test_test_synchronization(self):
+        sample = tools.TPA_Sample_from_filepaths(MV_SAMPLE)
+        max_error = 0
+        self.assertTrue(sample.test_synchronization(max_error = 0.5))
+        self.assertFalse(sample.test_synchronization(max_error = -1))
+
+    def test_test_alignment(self):
+        sample_messed = tools.TPA_Sample_from_filepaths(MV_SAMPLE_MESSED)
+        self.assertFalse(sample_messed.test_alignment())
+        sample = tools.TPA_Sample_from_filepaths(MV_SAMPLE)
+        self.assertTrue(sample.test_alignment())
+
+class Test_class_TPA_Sample_from_data(unittest.TestCase):
+    def test_default_init(self):
+        array0, ts0 = tools.txt2np(MV_SAMPLE[0])
+        array1, ts1 = tools.txt2np(MV_SAMPLE[1])
+        array2, ts2 = tools.txt2np(MV_SAMPLE[2])
+        arrays = [array0, array1, array2]
+        timestamps = [ts0, ts1, ts2]
+        ids = ["121", "122", "123"]
+        tools.TPA_Sample_from_data(arrays, timestamps, ids)
+        
+    def test_test_synchronization(self):
+        s = tools.TPA_Sample_from_filepaths(MV_SAMPLE)
+        a, t, i = s.arrays, s.timestamps, s.ids
+        sample = tools.TPA_Sample_from_data(a, t, i)
+        max_error = 0
+        self.assertTrue(sample.test_synchronization(max_error = 0.5))
+        self.assertFalse(sample.test_synchronization(max_error = -1))
+
+    def test_test_alignment(self):
+        s_m = tools.TPA_Sample_from_filepaths(MV_SAMPLE_MESSED)
+        a, t, i = s_m.arrays, s_m.timestamps, s_m.ids
+        sample_messed = tools.TPA_Sample_from_data(a, t, i)
+        self.assertFalse(sample_messed.test_alignment())
+        s = tools.TPA_Sample_from_filepaths(MV_SAMPLE)
+        a, t, i = s.arrays, s.timestamps, s.ids
+        sample = tools.TPA_Sample_from_data(a, t, i)
+        self.assertTrue(sample.test_alignment())
+    
+    def test_make_filepaths(self):
+        s = tools.TPA_Sample_from_filepaths(MV_SAMPLE)
+        a, t, i = s.arrays, s.timestamps, s.ids
+        sample = tools.TPA_Sample_from_data(a, t, i)
+        self.assertFalse(sample.filepaths)
+        expected_fps = [os.path.join("test", "prefix_ID"+id+".ext") for id in i]
+        sample.make_filepaths("test", "prefix_", "ext")
+        self.assertTrue(sample.filepaths)
+        self.assertEqual(sample.filepaths, expected_fps)
+
+    def test_write(self):
+        s = tools.TPA_Sample_from_filepaths(MV_SAMPLE)
+        a, t, i = s.arrays, s.timestamps, s.ids
+        sample = tools.TPA_Sample_from_data(a, t, i)
+        expected_fps = [os.path.join(TMP_PATH, "prefix_ID"+id+".txt") for id in i]
+        sample.make_filepaths(TMP_PATH, "prefix_", "txt")
+        self.assertTrue(sample.filepaths)
+        self.assertEqual(sample.filepaths, expected_fps)
+        sample.write()
+        s_o = tools.TPA_Sample_from_filepaths(sample.filepaths)
+        [self.assertTrue(np.array_equal(result, expected)) for result, expected in zip(s_o.arrays, s.arrays)]
+        [self.assertTrue(np.array_equal(result, expected)) for result, expected in zip(s_o.timestamps, s.timestamps)]
+        _cleanup(sample.filepaths)
+
+    def test_align_timesteps(self):
+        s = tools.TPA_Sample_from_filepaths(MV_SAMPLE_MESSED)
+        a, t, i = s.arrays, s.timestamps, s.ids
+        sample = tools.TPA_Sample_from_data(a, t, i)
+        # align now
+        sample.align_timesteps()
+        processed_a, processed_t, processed_i = sample.arrays, sample.timestamps, sample.ids
+        # test
+        lengths = [len(ts) for ts in t]
+        self.assertFalse(all(l == lengths[0] for l in lengths))
+        lengths = [len(array) for array in a]
+        self.assertFalse(all(l == lengths[0] for l in lengths))
+        lengths = [len(ts) for ts in processed_t]
+        self.assertTrue(all(l == lengths[0] for l in lengths))
+        lengths = [len(array) for array in processed_a]
+        self.assertTrue(all(l == lengths[0] for l in lengths))
+        self.assertNotEqual(t[0][9], 2.85)
+        self.assertNotEqual(t[1][9], 2.77)
+        self.assertEqual(t[2][9], 2.80)
+        self.assertEqual(processed_t[0][9], 2.85)
+        self.assertEqual(processed_t[1][9], 2.77)
+        self.assertTrue(np.array_equal(a[0][0], processed_a[0][0]))
+        self.assertTrue(np.array_equal(a[1][0], processed_a[1][0]))
+        self.assertTrue(np.array_equal(a[2][0], processed_a[2][0]))
+        self.assertTrue(np.array_equal(a[0][1], processed_a[0][1]))
+        self.assertTrue(np.array_equal(a[1][1], processed_a[1][1]))
+        self.assertTrue(np.array_equal(a[2][1], processed_a[2][1]))
+        self.assertFalse(np.array_equal(a[0][-1], processed_a[0][-1]))
+        self.assertFalse(np.array_equal(a[1][-1], processed_a[1][-1]))
+        self.assertTrue(np.array_equal(a[0][11], processed_a[0][-1]))
+        self.assertTrue(np.array_equal(a[1][11], processed_a[1][-1]))
+        self.assertTrue(np.array_equal(a[2][-1], processed_a[2][-1])) 
+
+            
+
+class Test_class_TPA_Dataset(unittest.TestCase):
+    def test_generate_config_template(self):
+        gen = tools.TPA_Dataset()
+        _init()
+        out_fp = os.path.join(TMP_PATH, "template.json")
+        gen.generate_config_template(out_fp)
+        self.assertTrue(os.path.exists(out_fp))
+        _cleanup([out_fp])
+
+    def test_init_config(self):
+        tpa_dataset = tools.TPA_Dataset()
+        self.assertFalse(tpa_dataset.configured)
+        tpa_dataset.config(TPA_DS_CONFIG)
+        self.assertTrue(tpa_dataset.configured)
+        tpa_dataset_messed = tools.TPA_Dataset()
+        with self.assertRaises(Exception) as context:
+            tpa_dataset_messed.config(TPA_DS_CONFIG_MESSED)
+        self.assertFalse(tpa_dataset_messed.configured)
+        
+    def test_make(self):
+        with open(TPA_DS_CONFIG) as f:
+            cnfg = json.load(f)
+        dest = cnfg["dataset_destination_dir"]
+        tpa_dataset = tools.TPA_Dataset()
+        self.assertFalse(tpa_dataset.configured)
+        tpa_dataset.config(TPA_DS_CONFIG)
+        tpa_dataset.make()
+        fns = ["20200415_1438_ID121.TXT", "20200415_1438_ID122.TXT", "20200415_1438_ID123.TXT"]
+        expected_fps = [os.path.join(dest, f) for f in fns]
+        self.assertEqual(set(glob.glob(os.path.join(dest, "*"))),set(expected_fps))
+        _cleanup(expected_fps)
+        if os.path.exists(dest):
+            os.rmdir(dest)
