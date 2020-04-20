@@ -50,6 +50,9 @@ Converts all TXT files in a given directory or a given file:
 
 `--overwrite` overwrites the files if they already exists.
 
+## img_converter.py
+Python program that converts TXT files (single-frame files) recorded by Heimann HTPA sensors and calculates and saves histograms.
+
 
 
 ```BibTeX
@@ -60,6 +63,3 @@ Converts all TXT files in a given directory or a given file:
   year =         {2020}
 }
 ```
-
-## img_converter.py
-Python program that converts TXT files (single-frame files) recorded by Heimann HTPA sensors and calculates and saves histograms.
