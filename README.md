@@ -1,6 +1,6 @@
 # HTPA32x32d 
 
-This repository contains tools to work with thermopile sensor array Heimann HTPA 32x32d and UDP communication module (included in the starting kit) in multi-view setup.
+This repository contains tools to work with thermopile sensor array Heimann HTPA 32x32d and UDP communication module (included in the starting kit) in multi-view setup. It is still uner development for my research so there might be **no backward compability** between the commits.
 
 Thermopile sensor array is an extremely low-resolution far-infrared imaging sensor (camera). This sensor can preserve the privacy of people captured, so I use this sensor in my on-going research on using thermopile sensor arrays in monitoring systems capable of early event detection/risk assessment/accident prevention.
 
@@ -15,6 +15,9 @@ A collection of useful functions and data structures for working with data captu
 
 ## recorder.py
 Python program that connects to Heimann HTPA sensors given their IP addresses (in settings file) and records data captured to TXT files. Supports recording mutliple sensors at the same time. This tool is supposed to help developing multi-view thermopile sensor array monitoring system. Number of the cameras it can connect to is unlimited. 
+
+## photocap.py
+Python program that connects to Heimann HTPA sensors given their IP addresses (in settings file) and captures data (single frames) to TXT files. Supports recording mutliple sensors at the same time. This tool is supposed to help developing multi-view thermopile sensor array monitoring system. Number of the cameras it can connect to is unlimited. 
 
 ## converter.py
 Python program that converts TXT files recorded by Heimann HTPA sensors and 
@@ -46,6 +49,7 @@ Converts all TXT files in a given directory or a given file:
 `--crop` in pixels, data frames are cropped to a patch of a given size in the center of the frame (note: CSV is never affected by this flag),
 
 `--overwrite` overwrites the files if they already exists.
+
 
 
 ```BibTeX
