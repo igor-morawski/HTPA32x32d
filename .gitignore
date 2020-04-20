@@ -108,3 +108,4 @@ venv.bak/
 
 tmp/
 settings/devices.txt
+*.log
