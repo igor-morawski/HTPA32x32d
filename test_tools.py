@@ -682,19 +682,17 @@ class Test_class_TPA_Preparer(unittest.TestCase):
     def test_prepare(self):
         with open(TPA_PP_CONFIG) as f:
             cnfg = json.load(f)
-        dest = cnfg["raw_input_dir"]
+        dest = cnfg["processed_destination_dir"]
         tpa_preparer = tools.TPA_Preparer()
         self.assertFalse(tpa_preparer.configured)
         tpa_preparer.config(TPA_PP_CONFIG)
         tpa_preparer.prepare()
         fns1 = ["20200415_1438_ID121.TXT", "20200415_1438_ID122.TXT", "20200415_1438_ID123.TXT"]
-        fns2 = ["NO_LABELS_ID121.TXT", "NO_LABELS__ID122.TXT", "NO_LABELS__ID123.TXT"]
-        fns3 = ["20200415_1515_ID121.TXT", "20200415_1515_ID122.TXT", "220200415_1515__ID123.TXT"]
+        fns2 = ["NO_LABELS_ID121.TXT", "NO_LABELS_ID122.TXT", "NO_LABELS_ID123.TXT"]
+        fns3 = ["20200415_1515_ID121.TXT", "20200415_1515_ID122.TXT", "20200415_1515_ID123.TXT"]
         fns = fns1 + fns2 + fns3
         expected_fps = [os.path.join(dest, f) for f in fns]
-'''
         self.assertEqual(set(glob.glob(os.path.join(dest, "*"))),set(expected_fps))
         _cleanup(expected_fps)
         if os.path.exists(dest):
             os.rmdir(dest)
-'''
