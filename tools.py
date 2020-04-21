@@ -10,7 +10,7 @@ Data types:
 
 Warnings:
     when converting TXT -> other types the array is rotated 90 deg. CW
-    numpy array order is 'K' 
+    numpy array order is 'K'
     txt array order is 'F'
 """
 import numpy as np
@@ -35,7 +35,9 @@ PD_DTYPE = np.float32
 READ_CSV_ARGS = {"skiprows": 1}
 PD_TIME_COL = "Time (sec)"
 PD_PTAT_COL = "PTAT"
+
 TPA_PREFIX_TEMPLATE = "YYYYMMDD_HHMM_ID{VIEW_IDENTIFIER}"
+TPA_NFO_FN = "tpa.nfo"
 
 READERS_EXTENSIONS_DICT = {
     "txt": "txt",
@@ -92,7 +94,7 @@ def read_tpa_file(filepath: str, array_size: int = 32):
         return pickle2np(filepath)
 
 
-def write_tpa_file(filepath: str, array, timestamps : list) -> bool:
+def write_tpa_file(filepath: str, array, timestamps: list) -> bool:
     """
     Convert and save Heimann HTPA NumPy array shaped [frames, height, width] to a txt file.
     Currently supported: see SUPPORTED_EXTENSIONS flag
@@ -156,8 +158,9 @@ def txt2np(filepath: str, array_size: int = 32):
         frames = np.rot90(frames, k=-1, axes=(1, 2))
     return frames, timestamps
 
+
 def write_np2txt(output_fp: str, array, timestamps: list) -> bool:
-        """
+    """
         Convert and save Heimann HTPA NumPy array shaped [frames, height, width] to a txt file.
 
         Parameters
@@ -169,16 +172,16 @@ def write_np2txt(output_fp: str, array, timestamps: list) -> bool:
         timestamps : list
             List of timestamps of corresponding array frames.
         """
-        ensure_parent_exists(output_fp)
-        frames = np.rot90(array, k=1, axes=(1, 2))
-        with open(output_fp, 'w') as file:
-            file.write('HTPA32x32d\n')
-            for step, t in zip(frames, timestamps):
-                line = ""
-                for val in step.flatten("F"):
-                    line += ("%02.2f"%val).replace(".", "")[:4] + " "
-                file.write("{}t: {}\n".format(line, t))
-        
+    ensure_parent_exists(output_fp)
+    frames = np.rot90(array, k=1, axes=(1, 2))
+    with open(output_fp, 'w') as file:
+        file.write('HTPA32x32d\n')
+        for step, t in zip(frames, timestamps):
+            line = ""
+            for val in step.flatten("F"):
+                line += ("%02.2f" % val).replace(".", "")[:4] + " "
+            file.write("{}t: {}\n".format(line, t))
+
 
 def write_np2pickle(output_fp: str, array, timestamps: list) -> bool:
     """
@@ -277,6 +280,7 @@ def csv2np(csv_fp: str):
     array = df.drop([PD_TIME_COL, PD_PTAT_COL], axis=1).to_numpy(dtype=DTYPE)
     array = reshape_flattened_frames(array)
     return array, timestamps
+
 
 def apply_heatmap(array, cv_colormap: int = cv2.COLORMAP_JET) -> np.ndarray:
     """
@@ -624,10 +628,12 @@ class TPA_Sample_from_filepaths(_TPA_Sample):
         return name.split("ID")[-1]
 
     def write(self):
-        raise Exception("You are trying to overwrite files. Use TPA_Sample_from_data if you need to modify arrays.")
+        raise Exception(
+            "You are trying to overwrite files. Use TPA_Sample_from_data if you need to modify arrays.")
 
     def align_timesteps(self):
-        raise Exception("Use TPA_Sample_from_data if you need to modify arrays.")
+        raise Exception(
+            "Use TPA_Sample_from_data if you need to modify arrays.")
 
 
 class TPA_Sample_from_data(_TPA_Sample):
@@ -662,6 +668,7 @@ def _TPA_get_file_prefix(filepath):
     name = remove_extension(os.path.basename(filepath))
     return name.split("ID")[0]
 
+
 class _TPA_File_Manager():
     def __init__(self):
         self.configured = False
@@ -675,7 +682,7 @@ class _TPA_File_Manager():
         with open(self._make_log, 'a') as f:
             f.write(log_msg+"\n")
 
-    def _generate_config_template(self, output_json_filepath, fill_dict = None):
+    def _generate_config_template(self, output_json_filepath, fill_dict=None):
         template = {}
         for key in self._json_required_keys:
             template[key] = ""
@@ -699,13 +706,67 @@ class _TPA_File_Manager():
             msg = "Keys missing {}".format(keys_missing)
             self._log(msg)
             return False
+        try:
+            if (self._json["PREPARE"] and self._json["MAKE"]):
+                raise Exception(
+                    "MAKE and PREPARE flags cannot be set at the same time to TRUE")
+        except KeyError:
+            pass
         return True
+
+    def _remove_missing_views(self, prefixes, prefixes2filter):
+        # filter out samples that miss views
+        counter = collections.Counter(prefixes)
+        view_number = len(self.view_IDs)
+        for prefix in counter.keys():
+            prefix_view_number = counter[prefix]
+            if (prefix_view_number < view_number):
+                prefixes2filter.remove(prefix)
+                self._log('[WARNING] Ignoring prefix {} because it misses {} views'.format(
+                    prefix, view_number-prefix_view_number))
+        return prefixes2filter
+
 
 class TPA_Preparer(_TPA_File_Manager):
     def __init__(self):
         _TPA_File_Manager.__init__(self)
-        self._json_required_keys = ["processed_destination_dir", "view_IDs",
-                                    "raw_input_dir", "labels_filepath", "tpas_extension", "MAKE", "PREPARE"]
+        self._json_required_keys = ["raw_input_dir", "processed_destination_dir", "view_IDs",
+                                    "tpas_extension", "output_extension", "MAKE", "PREPARE"]
+
+    def generate_config_template(self, output_json_filepath):
+        self._generate_config_template(
+            output_json_filepath, {"MAKE": 0, "PREPARE": 1})
+
+    def config(self, json_filepath):
+        with open(json_filepath) as f:
+            self._json = json.load(f)
+        assert self._validate_config()
+        assert self._json["PREPARE"]
+        self.raw_input_dir = self._json["raw_input_dir"]
+        self.processed_destination_dir = self._json["processed_destination_dir"]
+        self.view_IDs = self._json["view_IDs"]
+        self.tpas_extension = self._json["tpas_extension"]
+        self.configured = True
+        return True
+
+    def prepare(self):
+        ensure_path_exists(self.raw_input_dir)
+        glob_patterns = [os.path.join(
+            self.raw_input_dir, "*ID"+id+"."+self.tpas_extension) for id in self.view_IDs]
+        files = []
+        for pattern in glob_patterns:
+            files.extend(glob.glob(pattern))
+        prefixes = [_TPA_get_file_prefix(f) for f in files]
+        prefixes2process = list(set(prefixes))
+        prefixes2process_number0 = len(prefixes2process)
+        # filter out samples that miss views
+        prefixes2process = self._remove_missing_views(prefixes, prefixes2process)
+        print(prefixes2process)
+        for prefix in prefixes2process:
+            fp_prefix = os.path.join(self.raw_input_dir, prefix)
+            fp = fp_prefix + "ID" + view_id + "." + self.tpas_extension
+            input = TPA_Sample_from_filepaths()
+        pass
 
 
 class TPA_Dataset(_TPA_File_Manager):
@@ -718,22 +779,17 @@ class TPA_Dataset(_TPA_File_Manager):
         self._json_required_keys = ["dataset_destination_dir", "view_IDs",
                                     "processed_input_dir", "labels_filepath", "tpas_extension", "MAKE", "PREPARE"]
 
-
     def config(self, json_filepath):
         with open(json_filepath) as f:
             self._json = json.load(f)
         assert self._validate_config()
         assert self._json["MAKE"]
-        try:
-            if self._json["PREPARE"]:
-                raise Exception("MAKE and PREPARE flags cannot be set at the same time to TRUE")
-        except KeyError:
-            pass
         self.dataset_destination_dir = self._json["dataset_destination_dir"]
         self.view_IDs = self._json["view_IDs"]
         self.processed_input_dir = self._json["processed_input_dir"]
-        if not os.path.exists(os.path.join(self.processed_input_dir, "tpa.nfo")):
-            raise Exception("{} doesn't exist. Process your data first using TPA_Preparer".format(os.path.join(self.processed_input_dir, "tpa.nfo")))
+        if not os.path.exists(os.path.join(self.processed_input_dir, TPA_NFO_FN)):
+            raise Exception("{} doesn't exist. Process your data first using TPA_Preparer".format(
+                os.path.join(self.processed_input_dir, "tpa.nfo")))
         self.labels_filepath = self._json["labels_filepath"]
         if not os.path.exists(self._json["labels_filepath"]):
             msg = "Specified label file doesn't exist {}".format(
@@ -745,8 +801,9 @@ class TPA_Dataset(_TPA_File_Manager):
         return True
 
     def generate_config_template(self, output_json_filepath):
-        self._generate_config_template(output_json_filepath, {"MAKE":1, "PREPARE":0})
-        
+        self._generate_config_template(
+            output_json_filepath, {"MAKE": 1, "PREPARE": 0})
+
     def make(self):
         if not self.configured:
             msg = "Configure with config() first"
@@ -762,14 +819,7 @@ class TPA_Dataset(_TPA_File_Manager):
         prefixes2make = list(set(prefixes))
         prefixes2make_number0 = len(prefixes2make)
         # filter out samples that miss views
-        counter = collections.Counter(prefixes)
-        view_number = len(self.view_IDs)
-        for prefix in counter.keys():
-            prefix_view_number = counter[prefix]
-            if (prefix_view_number < view_number):
-                prefixes2make.remove(prefix)
-                self._log('[WARNING] Ignoring prefix {} because it misses {} views'.format(
-                    prefix, view_number-prefix_view_number))
+        prefixes2make = self._remove_missing_views(prefixes, prefixes2make)
         # filter out samples that miss a label
         self._labels = self._read_labels_file(self.labels_filepath)
         for prefix in prefixes2make:
@@ -777,13 +827,13 @@ class TPA_Dataset(_TPA_File_Manager):
                 prefixes2make.remove(prefix)
                 self._log('[WARNING] Ignoring prefix {} because it misses a label'.format(
                     prefix))
-        for prefix in prefixes2make:    
+        for prefix in prefixes2make:
             if not (type(self._labels[prefix]) == int):
                 prefixes2make.remove(prefix)
-                self._log('[WARNING] Ignoring prefix {} because the label is incorrect (it is not INT)'.format(
+                self._log('[WARNING] Ignoring prefix {} because the label is incorrect (it is not an integer)'.format(
                     prefix))
         # process the files
-        fps2process = []
+        fps2copy = []
         fps2output = []
         for prefix in prefixes2make:
             fp_prefix = os.path.join(self.processed_input_dir, prefix)
@@ -795,7 +845,7 @@ class TPA_Dataset(_TPA_File_Manager):
                 fp_o = fp_o_prefix + "ID" + view_id + "." + self.tpas_extension
                 fps.append(fp)
                 fps_o.append(fp_o)
-            fps2process.append(fps)
+            fps2copy.append(fps)
             fps2output.append(fps_o)
         prefixes2make_number = len(set(prefixes2make))
         prefixes_ignored = prefixes2make_number0 - prefixes2make_number
@@ -803,7 +853,7 @@ class TPA_Dataset(_TPA_File_Manager):
             prefixes_ignored, prefixes2make_number0))
         self._log("[INFO] Making dataset...")
         self._log("[INFO] Copying files...")
-        for src_tuple, dst_tuple in zip(fps2process, fps2output):
+        for src_tuple, dst_tuple in zip(fps2copy, fps2output):
             for src, dst in zip(src_tuple, dst_tuple):
                 shutil.copy2(src, dst)
         self._log("OK")
@@ -818,5 +868,4 @@ class TPA_Dataset(_TPA_File_Manager):
                 new_key = key.split("ID")[0]
                 data[new_key] = data.pop(old_key)
         return data
-
 

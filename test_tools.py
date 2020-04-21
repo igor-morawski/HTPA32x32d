@@ -14,6 +14,7 @@ EXPECTED_CSV_FP = os.path.join("testing", "expected.csv")
 EXPECTED_PICKLE_FP = os.path.join("testing", "expected.pickle")
 TMP_PATH = os.path.join("testing", "TMP")
 TPA_DS_CONFIG = os.path.join("testing", "testing_config.json")
+TPA_PP_CONFIG = os.path.join("testing", "preparer.json")
 TPA_DS_CONFIG_MESSED = os.path.join("testing", "testing_config_messed.json")
 
 
@@ -633,3 +634,41 @@ class Test_class_TPA_Dataset(unittest.TestCase):
         _cleanup(expected_fps)
         if os.path.exists(dest):
             os.rmdir(dest)
+class Test_class_TPA_Preparer(unittest.TestCase):
+    def test_generate_config_template(self):
+        gen = tools.TPA_Preparer()
+        _init()
+        out_fp = os.path.join(TMP_PATH, "template.json")
+        gen.generate_config_template(out_fp)
+        self.assertTrue(os.path.exists(out_fp))
+        _cleanup([out_fp])
+
+    def test_init_config(self):
+        tpa_preparer = tools.TPA_Preparer()
+        self.assertFalse(tpa_preparer.configured)
+        tpa_preparer.config(TPA_PP_CONFIG)
+        self.assertTrue(tpa_preparer.configured)
+        tpa_preparer_messed = tools.TPA_Preparer()
+        with self.assertRaises(Exception) as context:
+            tpa_preparer_messed.config(TPA_DS_CONFIG_MESSED)
+        self.assertFalse(tpa_preparer_messed.configured)
+        
+    def test_prepare(self):
+        with open(TPA_PP_CONFIG) as f:
+            cnfg = json.load(f)
+        dest = cnfg["raw_input_dir"]
+        tpa_preparer = tools.TPA_Preparer()
+        self.assertFalse(tpa_preparer.configured)
+        tpa_preparer.config(TPA_PP_CONFIG)
+        tpa_preparer.prepare()
+        fns1 = ["20200415_1438_ID121.TXT", "20200415_1438_ID122.TXT", "20200415_1438_ID123.TXT"]
+        fns2 = ["NO_LABELS_ID121.TXT", "NO_LABELS__ID122.TXT", "NO_LABELS__ID123.TXT"]
+        fns3 = ["20200415_1515_ID121.TXT", "20200415_1515_ID122.TXT", "220200415_1515__ID123.TXT"]
+        fns = fns1 + fns2 + fns3
+        expected_fps = [os.path.join(dest, f) for f in fns]
+'''
+        self.assertEqual(set(glob.glob(os.path.join(dest, "*"))),set(expected_fps))
+        _cleanup(expected_fps)
+        if os.path.exists(dest):
+            os.rmdir(dest)
+'''
