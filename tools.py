@@ -40,6 +40,7 @@ PD_PTAT_COL = "PTAT"
 
 TPA_PREFIX_TEMPLATE = "YYYYMMDD_HHMM_ID{VIEW_IDENTIFIER}"
 TPA_NFO_FN = "tpa.nfo"
+PROCESSED_OK_KEY = "ALIGNED"
 
 READERS_EXTENSIONS_DICT = {
     "txt": "txt",
@@ -683,9 +684,10 @@ def _TPA_get_file_prefix(filepath):
 class _TPA_File_Manager():
     def __init__(self):
         self.configured = False
-        self._make_log = "make.log"
-        if os.path.exists(self._make_log):
-            os.remove(self._make_log)
+        if VERBOSE:
+            self._make_log = "make.log"
+            if os.path.exists(self._make_log):
+                os.remove(self._make_log)
         self._log_msgs = []
 
     def _log(self, log_msg):
@@ -743,7 +745,7 @@ class TPA_Preparer(_TPA_File_Manager):
     def __init__(self):
         _TPA_File_Manager.__init__(self)
         self._json_required_keys = ["raw_input_dir", "processed_destination_dir", "view_IDs",
-                                    "tpas_extension", "output_extension", "MAKE", "PREPARE"]
+                                    "tpas_extension", "MAKE", "PREPARE"]
 
     def generate_config_template(self, output_json_filepath):
         self._generate_config_template(
@@ -773,7 +775,7 @@ class TPA_Preparer(_TPA_File_Manager):
         prefixes2process_number0 = len(prefixes2process)
         # filter out samples that miss views
         prefixes2process = self._remove_missing_views(prefixes, prefixes2process)
-        self._log("Reading, aligning and removing T0 from samples.")
+        self._log("Reading, aligning and removing T0 from samples...")
         for prefix in prefixes2process:
             raw_fp_prefix = os.path.join(self.raw_input_dir, prefix)
             processed_fp_prefix = os.path.join(self.processed_destination_dir, prefix)
@@ -783,7 +785,35 @@ class TPA_Preparer(_TPA_File_Manager):
             processed_sample =  TPA_Sample_from_data(raw_sample.arrays, raw_sample.timestamps, raw_sample.ids, processed_fps)
             processed_sample.align_timesteps(reset_T0=True)
             processed_sample.write()
-        pass
+        self._write_nfo()
+        self._write_labels_file(prefixes2process)
+        self._write_make_file()
+        self._log("Writing {}...")
+        self._log("OK")
+        
+    def _write_nfo(self):
+        filepath = os.path.join(self.processed_destination_dir, TPA_NFO_FN)
+        data = {PROCESSED_OK_KEY : 1}
+        with open(filepath, 'w') as f:
+            json.dump(data, f)
+    
+    def _write_labels_file(self, prefixes2label):
+        filepath = os.path.join(self.processed_destination_dir, "labels.json")
+        data = {prefix:"" for prefix in prefixes2label}
+        with open(filepath, 'w') as f:
+            json.dump(data, f)
+
+    def _write_make_file(self):
+        filepath = os.path.join(self.processed_destination_dir, "make_config.json")
+        dataset_maker = TPA_Dataset()
+        fill_dict = {}
+        fill_dict.update({"view_IDs":self.view_IDs})
+        fill_dict.update({"tpas_extension":self.tpas_extension})
+        fill_dict.update({"processed_input_dir":self.processed_destination_dir})
+        fill_dict.update({"labels_filepath":os.path.join(self.processed_destination_dir, "labels.json")})
+        fill_dict.update({"MAKE":1})
+        fill_dict.update({"PREPARE":0})
+        dataset_maker.generate_config_template(filepath, fill_dict)
 
 
 class TPA_Dataset(_TPA_File_Manager):
@@ -806,7 +836,10 @@ class TPA_Dataset(_TPA_File_Manager):
         self.processed_input_dir = self._json["processed_input_dir"]
         if not os.path.exists(os.path.join(self.processed_input_dir, TPA_NFO_FN)):
             raise Exception("{} doesn't exist. Process your data first using TPA_Preparer".format(
-                os.path.join(self.processed_input_dir, "tpa.nfo")))
+                os.path.join(self.processed_input_dir, TPA_NFO_FN)))
+        with open(os.path.join(self.processed_input_dir, TPA_NFO_FN)) as f:
+            nfo = json.load(f)
+        assert nfo[PROCESSED_OK_KEY]
         self.labels_filepath = self._json["labels_filepath"]
         if not os.path.exists(self._json["labels_filepath"]):
             msg = "Specified label file doesn't exist {}".format(
@@ -817,9 +850,12 @@ class TPA_Dataset(_TPA_File_Manager):
         self.configured = True
         return True
 
-    def generate_config_template(self, output_json_filepath):
+    def generate_config_template(self, output_json_filepath, fill_dict = None):
+        init_fill_dict = {"MAKE": 1, "PREPARE": 0}
+        if fill_dict:
+            init_fill_dict.update(fill_dict)
         self._generate_config_template(
-            output_json_filepath, {"MAKE": 1, "PREPARE": 0})
+            output_json_filepath, fill_dict=init_fill_dict)
 
     def make(self):
         if not self.configured:
@@ -841,6 +877,11 @@ class TPA_Dataset(_TPA_File_Manager):
         self._labels = self._read_labels_file(self.labels_filepath)
         for prefix in prefixes2make:
             if (prefix not in self._labels):
+                prefixes2make.remove(prefix)
+                self._log('[WARNING] Ignoring prefix {} because it misses a label'.format(
+                    prefix))
+        for prefix in prefixes2make:
+            if not self._labels[prefix]:
                 prefixes2make.remove(prefix)
                 self._log('[WARNING] Ignoring prefix {} because it misses a label'.format(
                     prefix))

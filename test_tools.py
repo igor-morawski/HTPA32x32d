@@ -690,9 +690,110 @@ class Test_class_TPA_Preparer(unittest.TestCase):
         fns1 = ["20200415_1438_ID121.TXT", "20200415_1438_ID122.TXT", "20200415_1438_ID123.TXT"]
         fns2 = ["NO_LABELS_ID121.TXT", "NO_LABELS_ID122.TXT", "NO_LABELS_ID123.TXT"]
         fns3 = ["20200415_1515_ID121.TXT", "20200415_1515_ID122.TXT", "20200415_1515_ID123.TXT"]
-        fns = fns1 + fns2 + fns3
+        fns4 = ["tpa.nfo", "labels.json", "make_config.json"]
+        fns = fns1 + fns2 + fns3 + fns4
         expected_fps = [os.path.join(dest, f) for f in fns]
         self.assertEqual(set(glob.glob(os.path.join(dest, "*"))),set(expected_fps))
+        with open(os.path.join(dest, fns4[0])) as f:
+            data = json.load(f)
+        key = tools.PROCESSED_OK_KEY
+        self.assertTrue(data[key])
+        with open(os.path.join(dest, fns4[1])) as f:
+            data = json.load(f)
+        prefixes = ["20200415_1438_", "NO_LABELS_", "20200415_1515_"]
+        [self.assertTrue(key in data) for key in prefixes]
         _cleanup(expected_fps)
         if os.path.exists(dest):
             os.rmdir(dest)
+
+class Test_class_Integration_TPA_Preparer_Dataset(unittest.TestCase):
+    def test_no_labels(self):
+        # process data
+        with open(TPA_PP_CONFIG) as f:
+            cnfg = json.load(f)
+        processed_destination_dir = cnfg["processed_destination_dir"]
+        tpa_preparer = tools.TPA_Preparer()
+        tpa_preparer.config(TPA_PP_CONFIG)
+        tpa_preparer.prepare()
+        # fill dest in config
+        with open(TPA_DS_CONFIG) as f:
+            cnfg = json.load(f)
+        dataset_destination_dir = cnfg["dataset_destination_dir"]
+        with open(os.path.join(processed_destination_dir, "make_config.json")) as f:
+            cnfg = json.load(f)
+        with open(os.path.join(processed_destination_dir, "make_config.json"), 'w') as f:
+            cnfg['dataset_destination_dir'] = dataset_destination_dir
+            json.dump(cnfg, f)
+        # DON'T fill the labels fiile
+        # make dataset
+        tpa_maker = tools.TPA_Dataset()
+        tpa_maker.config(os.path.join(processed_destination_dir, "make_config.json"))
+        tpa_maker.make()
+        # labels are empty, all files should be skipped!
+        self.assertEqual(set(glob.glob(os.path.join(dataset_destination_dir, "*"))),set())
+        _cleanup
+        fns1 = ["20200415_1438_ID121.TXT", "20200415_1438_ID122.TXT", "20200415_1438_ID123.TXT"]
+        fns2 = ["NO_LABELS_ID121.TXT", "NO_LABELS_ID122.TXT", "NO_LABELS_ID123.TXT"]
+        fns3 = ["20200415_1515_ID121.TXT", "20200415_1515_ID122.TXT", "20200415_1515_ID123.TXT"]
+        fns4 = ["tpa.nfo", "labels.json", "make_config.json"]
+        fns = fns1 + fns2 + fns3 + fns4
+        expected_fps = [os.path.join(processed_destination_dir, f) for f in fns]
+        _cleanup(expected_fps)
+        if os.path.exists(processed_destination_dir):
+            os.rmdir(processed_destination_dir)
+        if os.path.exists(dataset_destination_dir):
+            os.rmdir(dataset_destination_dir)
+    def test_making(self):
+        # process data
+        with open(TPA_PP_CONFIG) as f:
+            cnfg = json.load(f)
+        processed_destination_dir = cnfg["processed_destination_dir"]
+        tpa_preparer = tools.TPA_Preparer()
+        tpa_preparer.config(TPA_PP_CONFIG)
+        tpa_preparer.prepare()
+        # fill dest in config
+        with open(TPA_DS_CONFIG) as f:
+            cnfg = json.load(f)
+        dataset_destination_dir = cnfg["dataset_destination_dir"]
+        with open(os.path.join(processed_destination_dir, "make_config.json")) as f:
+            cnfg = json.load(f)
+        with open(os.path.join(processed_destination_dir, "make_config.json"), 'w') as f:
+            cnfg['dataset_destination_dir'] = dataset_destination_dir
+            json.dump(cnfg, f)
+        # fill the labels fiile
+        with open(os.path.join(processed_destination_dir, "labels.json")) as f:
+            labels = json.load(f)
+        with open(os.path.join(processed_destination_dir, "labels.json"), 'w') as f:
+            labels['20200415_1438_'] = 4
+            labels['20200415_1515_'] = 5
+            json.dump(labels, f)
+        # make dataset
+        tpa_maker = tools.TPA_Dataset()
+        tpa_maker.config(os.path.join(processed_destination_dir, "make_config.json"))
+        tpa_maker.make()
+        # NO_LABEL_ shouldnt be processed
+        fns1 = ["20200415_1438_ID121.TXT", "20200415_1438_ID122.TXT", "20200415_1438_ID123.TXT"]
+        fns3 = ["20200415_1515_ID121.TXT", "20200415_1515_ID122.TXT", "20200415_1515_ID123.TXT"]
+        fns = fns1+fns3
+        expected_fps = [os.path.join(dataset_destination_dir, f) for f in fns]
+        self.assertEqual(set(glob.glob(os.path.join(dataset_destination_dir, "*"))),set(expected_fps))
+        _cleanup
+        fns1 = ["20200415_1438_ID121.TXT", "20200415_1438_ID122.TXT", "20200415_1438_ID123.TXT"]
+        fns2 = ["NO_LABELS_ID121.TXT", "NO_LABELS_ID122.TXT", "NO_LABELS_ID123.TXT"]
+        fns3 = ["20200415_1515_ID121.TXT", "20200415_1515_ID122.TXT", "20200415_1515_ID123.TXT"]
+        fns4 = ["tpa.nfo", "labels.json", "make_config.json"]
+        fns = fns1 + fns2 + fns3 + fns4
+        expected_fps = [os.path.join(processed_destination_dir, f) for f in fns]
+        _cleanup(expected_fps)
+        if os.path.exists(processed_destination_dir):
+            os.rmdir(processed_destination_dir)
+        fns = fns1 + fns3
+        expected_fps = [os.path.join(dataset_destination_dir, f) for f in fns]
+        _cleanup(expected_fps)
+        if os.path.exists(dataset_destination_dir):
+            os.rmdir(dataset_destination_dir)
+        
+        
+
+
+
