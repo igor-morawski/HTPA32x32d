@@ -7,6 +7,7 @@ import json
 import glob
 
 import tools
+tools.VERBOSE = True
 
 EXPECTED_TXT_FP = os.path.join("testing", "expected.TXT")
 EXPECTED_NP_FP = os.path.join("testing", "expected.npy")
@@ -513,6 +514,8 @@ class Test_class_TPA_Sample_from_filepaths(unittest.TestCase):
         self.assertFalse(sample_messed.test_alignment())
         sample = tools.TPA_Sample_from_filepaths(MV_SAMPLE)
         self.assertTrue(sample.test_alignment())
+        a0, a1, a2 = sample.arrays
+        t0, t1, t2 =  sample.timestamps
 
 class Test_class_TPA_Sample_from_data(unittest.TestCase):
     def test_default_init(self):
@@ -598,6 +601,29 @@ class Test_class_TPA_Sample_from_data(unittest.TestCase):
         self.assertTrue(np.array_equal(a[0][11], processed_a[0][-1]))
         self.assertTrue(np.array_equal(a[1][11], processed_a[1][-1]))
         self.assertTrue(np.array_equal(a[2][-1], processed_a[2][-1])) 
+
+    def test_reset_T0_align_timesteps(self):
+        s = tools.TPA_Sample_from_filepaths(MV_SAMPLE_MESSED)
+        a, t, i = s.arrays, s.timestamps, s.ids
+        sample = tools.TPA_Sample_from_data(a, t, i)
+        # align now
+        sample.align_timesteps(reset_T0 = True)
+        processed_a, processed_t, processed_i = sample.arrays, sample.timestamps, sample.ids
+        # test
+        lengths = [len(ts) for ts in t]
+        self.assertFalse(all(l == lengths[0] for l in lengths))
+        lengths = [len(array) for array in a]
+        self.assertFalse(all(l == lengths[0] for l in lengths))
+        lengths = [len(ts) for ts in processed_t]
+        self.assertTrue(all(l == lengths[0] for l in lengths))
+        lengths = [len(array) for array in processed_a]
+        self.assertTrue(all(l == lengths[0] for l in lengths))
+        self.assertNotEqual(t[0][9], 2.85)
+        self.assertNotEqual(t[1][9], 2.77)
+        self.assertEqual(t[2][9], 2.80)
+        np.testing.assert_almost_equal(processed_t[0][0], 0.02, 5)
+        self.assertEqual(processed_t[1][0], 0)
+        np.testing.assert_almost_equal(processed_t[2][0], 0.05, 5)
 
             
 

@@ -28,6 +28,8 @@ import collections
 import shutil
 
 
+VERBOSE = False
+
 DTYPE = "float32"
 PD_SEP = ","
 PD_NAN = np.inf
@@ -46,6 +48,7 @@ READERS_EXTENSIONS_DICT = {
     "pkl": "pickle",
     "p": "pickle",
 }
+
 SUPPORTED_EXTENSIONS = list(READERS_EXTENSIONS_DICT.keys())
 
 
@@ -641,11 +644,13 @@ class TPA_Sample_from_data(_TPA_Sample):
     # TODO
     """
 
-    def __init__(self, arrays, timestamps, ids):
+    def __init__(self, arrays, timestamps, ids, output_filepaths = None):
         self.filepaths = None
         self.ids = ids.copy()
         self.arrays = arrays.copy()
         self.timestamps = timestamps.copy()
+        if output_filepaths:
+            self.filepaths = output_filepaths
 
     def make_filepaths(self, parent_dir, prefix, extension):
         self.filepaths = [os.path.join(
@@ -656,11 +661,17 @@ class TPA_Sample_from_data(_TPA_Sample):
         for fp, array, ts in zip(self.filepaths, self.arrays, self.timestamps):
             write_tpa_file(fp, array, ts)
 
-    def align_timesteps(self):
+    def align_timesteps(self, reset_T0 = False):
         indexes = match_timesteps(*self.timestamps)
+        print(self.filepaths)
         for i in range(len(self.ids)):
             self.arrays[i] = self.arrays[i][indexes[i]]
-            self.timestamps[i] = list(np.array(self.timestamps[i])[indexes[i]])
+            timestamps = np.array(self.timestamps[i])[indexes[i]]
+            self.timestamps[i] = list(timestamps)
+        if reset_T0:
+            sample_T0_min = np.min([ts[0] for ts in self.timestamps])
+            timestamps = [np.array(ts)-sample_T0_min for ts in self.timestamps]
+            self.timestamps = timestamps
         return True
 
 
@@ -678,9 +689,10 @@ class _TPA_File_Manager():
         self._log_msgs = []
 
     def _log(self, log_msg):
-        print(log_msg)
-        with open(self._make_log, 'a') as f:
-            f.write(log_msg+"\n")
+        if VERBOSE:
+            print(log_msg)
+            with open(self._make_log, 'a') as f:
+                f.write(log_msg+"\n")
 
     def _generate_config_template(self, output_json_filepath, fill_dict=None):
         template = {}
@@ -761,11 +773,16 @@ class TPA_Preparer(_TPA_File_Manager):
         prefixes2process_number0 = len(prefixes2process)
         # filter out samples that miss views
         prefixes2process = self._remove_missing_views(prefixes, prefixes2process)
-        print(prefixes2process)
+        self._log("Reading, aligning and removing T0 from samples.")
         for prefix in prefixes2process:
-            fp_prefix = os.path.join(self.raw_input_dir, prefix)
-            fp = fp_prefix + "ID" + view_id + "." + self.tpas_extension
-            input = TPA_Sample_from_filepaths()
+            raw_fp_prefix = os.path.join(self.raw_input_dir, prefix)
+            processed_fp_prefix = os.path.join(self.processed_destination_dir, prefix)
+            raw_fps = [raw_fp_prefix + "ID" + view_id + "." + self.tpas_extension for view_id in self.view_IDs]
+            processed_fps = [processed_fp_prefix + "ID" + view_id + "." + self.tpas_extension for view_id in self.view_IDs]
+            raw_sample = TPA_Sample_from_filepaths(raw_fps)
+            processed_sample =  TPA_Sample_from_data(raw_sample.arrays, raw_sample.timestamps, raw_sample.ids, processed_fps)
+            processed_sample.align_timesteps(reset_T0=True)
+            processed_sample.write()
         pass
 
 
