@@ -784,6 +784,10 @@ class TPA_Preparer(_TPA_File_Manager):
         return True
 
     def prepare(self):
+        if not self.configured:
+            msg = "Configure with config() first"
+            self._log(msg)
+            raise Exception(msg)
         ensure_path_exists(self.raw_input_dir)
         glob_patterns = [os.path.join(
             self.raw_input_dir, "*ID"+id+"."+self.tpas_extension) for id in self.view_IDs]
