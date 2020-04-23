@@ -41,6 +41,7 @@ PD_PTAT_COL = "PTAT"
 TPA_PREFIX_TEMPLATE = "YYYYMMDD_HHMM_ID{VIEW_IDENTIFIER}"
 TPA_NFO_FN = "tpa.nfo"
 PROCESSED_OK_KEY = "ALIGNED"
+MADE_OK_KEY = "DATASET_PREPARED"
 
 READERS_EXTENSIONS_DICT = {
     "txt": "txt",
@@ -474,7 +475,26 @@ def crop_center(array, crop_height, crop_width):
 
 
 def match_timesteps(*timestamps_lists):
-    #TODO ''' '''
+    """
+    Aligns timesteps of given timestamps.
+
+
+    Parameters
+    ---------
+    *timestamps_list : list, np.array
+        lists-like data containing timestamps 
+    Returns
+    -------
+    list
+        list of indices of timesteps corresponding to input lists so that input lists are aligned
+    
+    Example:
+        ts1 = [1, 2, 3, 4, 5]
+        ts2 = [1.1, 2.1, 2.9, 3.6, 5.1, 6, 6.1]
+        ts3 = [0.9, 1.2, 2, 3, 4.1, 4.2, 4.3, 4.9]
+        idx1, idx2, idx3 = match_timesteps(ts1, ts2, ts3)
+    now ts1[idx1], ts2[idx2] and ts3[idx3] will be aligned
+    """
     ts_list = [np.array(ts).reshape(-1, 1) for ts in timestamps_lists]
     min_len_idx = np.array([len(ts) for ts in ts_list]).argmin()
     min_len_ts = ts_list[min_len_idx]
@@ -788,7 +808,7 @@ class TPA_Preparer(_TPA_File_Manager):
         self._write_nfo()
         self._write_labels_file(prefixes2process)
         self._write_make_file()
-        self._log("Writing {}...")
+        self._log("Writing nfo, labels and json files...")
         self._log("OK")
         
     def _write_nfo(self):
@@ -805,7 +825,7 @@ class TPA_Preparer(_TPA_File_Manager):
 
     def _write_make_file(self):
         filepath = os.path.join(self.processed_destination_dir, "make_config.json")
-        dataset_maker = TPA_Dataset()
+        dataset_maker = TPA_Dataset_Maker()
         fill_dict = {}
         fill_dict.update({"view_IDs":self.view_IDs})
         fill_dict.update({"tpas_extension":self.tpas_extension})
@@ -816,7 +836,7 @@ class TPA_Preparer(_TPA_File_Manager):
         dataset_maker.generate_config_template(filepath, fill_dict)
 
 
-class TPA_Dataset(_TPA_File_Manager):
+class TPA_Dataset_Maker(_TPA_File_Manager):
     '''
     #TODO CALL A TPA_Preparer FIRST
     '''
@@ -909,13 +929,31 @@ class TPA_Dataset(_TPA_File_Manager):
         prefixes_ignored = prefixes2make_number0 - prefixes2make_number
         self._log("[INFO] {} prefixes ignored out of initial {}".format(
             prefixes_ignored, prefixes2make_number0))
+        if (prefixes_ignored == prefixes2make_number0):
+            self._log("[WARNING] All files ignored, dataset is empty.")
+            self._log("FAILED")
+            return False
         self._log("[INFO] Making dataset...")
         self._log("[INFO] Copying files...")
         for src_tuple, dst_tuple in zip(fps2copy, fps2output):
             for src, dst in zip(src_tuple, dst_tuple):
                 shutil.copy2(src, dst)
+        self._log("Writing nfo, labels and json files...")
+        self._write_nfo()
+        self._copy_labels_file()
         self._log("OK")
         return True
+        
+    def _write_nfo(self):
+        filepath = os.path.join(self.dataset_destination_dir, TPA_NFO_FN)
+        data = {MADE_OK_KEY : 1}
+        with open(filepath, 'w') as f:
+            json.dump(data, f)
+    
+    def _copy_labels_file(self):
+        src = os.path.join(self.labels_filepath)
+        dst = os.path.join(self.dataset_destination_dir, "labels.json")
+        shutil.copy2(src, dst)
 
     def _read_labels_file(self, json_filepath):
         with open(json_filepath) as f:

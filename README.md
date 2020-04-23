@@ -1,23 +1,52 @@
+Feel free to [contact me](https://www.linkedin.com/in/igor-morawski/) if you have any questions about the sensor or the research.
+
 # HTPA32x32d 
 
-This repository contains tools to work with thermopile sensor array Heimann HTPA 32x32d and UDP communication module (included in the starting kit) in multi-view setup. It is still uner development for my research so there might be **no backward compability** between the commits.
+This repository contains tools to work with thermopile sensor array Heimann HTPA 32x32d and UDP communication module (included in the starting kit) in multi-view setup. Because it is still uner development for my research, there might be **no backward compability** between the commits.
 
 Thermopile sensor array is an extremely low-resolution far-infrared imaging sensor (camera). This sensor can preserve the privacy of people captured, so I use this sensor in my on-going research on using thermopile sensor arrays in monitoring systems capable of early event detection/risk assessment/accident prevention.
 
 This repo is developed for HTPA 32x32d but can be easily modifed to generalize to any device resolution.
 ## Learn more
-You can learn about the sensor more by visiting [Heimann Sensor's website](https://www.heimannsensor.com/products_imaging.php), or you can learn more about me and my research [on my website](https://igor-morawski.github.io/).
-
-Feel free to [contact me](https://www.linkedin.com/in/igor-morawski/) if you have any questions about the sensor or the research.
+You can learn about the sensor more by visiting [Heimann Sensor's website](https://www.heimannsensor.com/products_imaging.php), or you can learn more about me and my research [on my website](https://igor-morawski.github.io/). You can also contact me on [LinkedIn](https://www.linkedin.com/in/igor-morawski/).
 
 ## tools.py
 A collection of useful functions and data structures for working with data captured by Heimann HTPA32x32d and other thermopile sensor arrays. 
 
+### Data types supported
+* Call `SUPPORTED_EXTENSIONS` to see the list of currently supported types.
+  * txt
+  * csv
+  * pickle (.pickle, .pkl, .p)
+
+### Reading and writing files
+* `read_tpa_file` reads files with supported extensions (deduced from filename extension given as argument)
+
+* `write_tpa_file`  writes files with supported extensions (deduced from filename extension given as argument)
+
+### Visualization
+* `apply_heatmap` applies opencv (cv2) heatmaps
+* `np2pc` temperature numpy array to pseudocolored numpy array 
+* `write_pc2gif` pseudocolored RGB sequence to animated gif, timing between frames is kept if duration is passed 
+  * use `timestamps2frame_durations` if you need to convert timestamps to frame durations
+  
+### Aligning, resampling, cropping
+* `match_timesteps` to get indexes of timestamps so that timestamp\[corresponding_index_list\] is aligned with other given timestamps
+* `resampling`
+* `crop_center` to keep only center portion of the sequence, e.g. 28x28 out of 32x32 pixels
+
+### Dataset making
+
+  Class  | Input | Output | Remarks
+------------- | ------------- | ------------- | -------------
+TPA_Preparer  | `*ID*.TXT` (unprocessed) <br> `{config_procesing}.json`| `*ID*.TXT` <br> `tpa.nfo` <br> `labels.json` (to be filled by user) <br> `{config_making}.json` (to be filled by user) | unproceesed sequences → aligned sequences and labels file (to be filled by user before making dataset) <br>  filtering out samples that miss views (incomplete sequences) <br> - aligning sequences 
+TPA_Dataset_Maker  | `*ID*.TXT` (processed: aligned) <br> `{config_making}.json` <br> `tpa.nfo` <br> `labels.json` | `*ID*.TXT` <br> `tpa.nfo` | aligned sequences and labels file (filled by user) → aligned sequences and labels file <br>  - filtering out samples that miss views (incomplete sequences) <br> - filtering out samples that miss a label
+
+Call *generate_config_template()* method to generate required config files. 
+
 ## recorder.py
 Python program that connects to Heimann HTPA sensors given their IP addresses (in settings file) and records data captured to TXT files. Supports recording mutliple sensors at the same time. This tool is supposed to help developing multi-view thermopile sensor array monitoring system. Number of the cameras it can connect to is unlimited. 
 
-## photocap.py
-Python program that connects to Heimann HTPA sensors given their IP addresses (in settings file) and captures data (single frames) to TXT files. Supports recording mutliple sensors at the same time. This tool is supposed to help developing multi-view thermopile sensor array monitoring system. Number of the cameras it can connect to is unlimited. 
 
 ## converter.py
 Python program that converts TXT files recorded by Heimann HTPA sensors and 
@@ -50,10 +79,14 @@ Converts all TXT files in a given directory or a given file:
 
 `--overwrite` overwrites the files if they already exists.
 
-## img_converter.py
+`--debug` debugs corrupted .TXT files.
+
+
+## misc/photocap.py
+Python program that connects to Heimann HTPA sensors given their IP addresses (in settings file) and captures data (single frames) to TXT files. Supports recording mutliple sensors at the same time. This tool is supposed to help developing multi-view thermopile sensor array monitoring system. Number of the cameras it can connect to is unlimited. 
+
+## misc/img_converter.py
 Python program that converts TXT files (single-frame files) recorded by Heimann HTPA sensors and calculates and saves histograms.
-
-
 
 ```BibTeX
 @misc{im2020HTPA32x32d,

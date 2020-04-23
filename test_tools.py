@@ -627,9 +627,9 @@ class Test_class_TPA_Sample_from_data(unittest.TestCase):
 
             
 
-class Test_class_TPA_Dataset(unittest.TestCase):
+class Test_class_TPA_Dataset_Maker(unittest.TestCase):
     def test_generate_config_template(self):
-        gen = tools.TPA_Dataset()
+        gen = tools.TPA_Dataset_Maker()
         _init()
         out_fp = os.path.join(TMP_PATH, "template.json")
         gen.generate_config_template(out_fp)
@@ -637,11 +637,11 @@ class Test_class_TPA_Dataset(unittest.TestCase):
         _cleanup([out_fp])
 
     def test_init_config(self):
-        tpa_dataset = tools.TPA_Dataset()
+        tpa_dataset = tools.TPA_Dataset_Maker()
         self.assertFalse(tpa_dataset.configured)
         tpa_dataset.config(TPA_DS_CONFIG)
         self.assertTrue(tpa_dataset.configured)
-        tpa_dataset_messed = tools.TPA_Dataset()
+        tpa_dataset_messed = tools.TPA_Dataset_Maker()
         with self.assertRaises(Exception) as context:
             tpa_dataset_messed.config(TPA_DS_CONFIG_MESSED)
         self.assertFalse(tpa_dataset_messed.configured)
@@ -650,11 +650,15 @@ class Test_class_TPA_Dataset(unittest.TestCase):
         with open(TPA_DS_CONFIG) as f:
             cnfg = json.load(f)
         dest = cnfg["dataset_destination_dir"]
-        tpa_dataset = tools.TPA_Dataset()
+        tpa_dataset = tools.TPA_Dataset_Maker()
         self.assertFalse(tpa_dataset.configured)
         tpa_dataset.config(TPA_DS_CONFIG)
         tpa_dataset.make()
         fns = ["20200415_1438_ID121.TXT", "20200415_1438_ID122.TXT", "20200415_1438_ID123.TXT"]
+        fns = fns + ["tpa.nfo", "labels.json"]
+        with open(os.path.join(dest, "tpa.nfo")) as f:
+            data = json.load(f)
+            self.assertTrue(data[tools.MADE_OK_KEY])
         expected_fps = [os.path.join(dest, f) for f in fns]
         self.assertEqual(set(glob.glob(os.path.join(dest, "*"))),set(expected_fps))
         _cleanup(expected_fps)
@@ -726,12 +730,11 @@ class Test_class_Integration_TPA_Preparer_Dataset(unittest.TestCase):
             json.dump(cnfg, f)
         # DON'T fill the labels fiile
         # make dataset
-        tpa_maker = tools.TPA_Dataset()
+        tpa_maker = tools.TPA_Dataset_Maker()
         tpa_maker.config(os.path.join(processed_destination_dir, "make_config.json"))
         tpa_maker.make()
         # labels are empty, all files should be skipped!
         self.assertEqual(set(glob.glob(os.path.join(dataset_destination_dir, "*"))),set())
-        _cleanup
         fns1 = ["20200415_1438_ID121.TXT", "20200415_1438_ID122.TXT", "20200415_1438_ID123.TXT"]
         fns2 = ["NO_LABELS_ID121.TXT", "NO_LABELS_ID122.TXT", "NO_LABELS_ID123.TXT"]
         fns3 = ["20200415_1515_ID121.TXT", "20200415_1515_ID122.TXT", "20200415_1515_ID123.TXT"]
@@ -768,28 +771,26 @@ class Test_class_Integration_TPA_Preparer_Dataset(unittest.TestCase):
             labels['20200415_1515_'] = 5
             json.dump(labels, f)
         # make dataset
-        tpa_maker = tools.TPA_Dataset()
+        tpa_maker = tools.TPA_Dataset_Maker()
         tpa_maker.config(os.path.join(processed_destination_dir, "make_config.json"))
         tpa_maker.make()
         # NO_LABEL_ shouldnt be processed
         fns1 = ["20200415_1438_ID121.TXT", "20200415_1438_ID122.TXT", "20200415_1438_ID123.TXT"]
         fns3 = ["20200415_1515_ID121.TXT", "20200415_1515_ID122.TXT", "20200415_1515_ID123.TXT"]
-        fns = fns1+fns3
-        expected_fps = [os.path.join(dataset_destination_dir, f) for f in fns]
-        self.assertEqual(set(glob.glob(os.path.join(dataset_destination_dir, "*"))),set(expected_fps))
-        _cleanup
+        fns5 = ["tpa.nfo", "labels.json"]
+        fns_ds = fns1+fns3+fns5
+        expected_fps_ds = [os.path.join(dataset_destination_dir, f) for f in fns_ds]
+        self.assertEqual(set(glob.glob(os.path.join(dataset_destination_dir, "*"))),set(expected_fps_ds))
         fns1 = ["20200415_1438_ID121.TXT", "20200415_1438_ID122.TXT", "20200415_1438_ID123.TXT"]
         fns2 = ["NO_LABELS_ID121.TXT", "NO_LABELS_ID122.TXT", "NO_LABELS_ID123.TXT"]
         fns3 = ["20200415_1515_ID121.TXT", "20200415_1515_ID122.TXT", "20200415_1515_ID123.TXT"]
         fns4 = ["tpa.nfo", "labels.json", "make_config.json"]
-        fns = fns1 + fns2 + fns3 + fns4
-        expected_fps = [os.path.join(processed_destination_dir, f) for f in fns]
-        _cleanup(expected_fps)
+        fns_pp = fns1 + fns2 + fns3 + fns4
+        expected_fps_pp = [os.path.join(processed_destination_dir, f) for f in fns_pp]
+        _cleanup(expected_fps_pp)
         if os.path.exists(processed_destination_dir):
             os.rmdir(processed_destination_dir)
-        fns = fns1 + fns3
-        expected_fps = [os.path.join(dataset_destination_dir, f) for f in fns]
-        _cleanup(expected_fps)
+        _cleanup(expected_fps_ds)
         if os.path.exists(dataset_destination_dir):
             os.rmdir(dataset_destination_dir)
         
