@@ -75,6 +75,7 @@ import os
 raw_dir = "raw" # this is your directory that contains raw .TXT files from HTPA32x32d, all named YYYYMMDD_HHmm_ID{id}.TXT
 preparer = HTPA32x32d.tools.TPA_Preparer()
 preparer.config(os.path.join(raw_dir, "config.json"))
+HTPA32x32d.tools.SYNCHRONIZATION_MAX_ERROR = 0.15
 preparer.prepare()
 ```
 now fill in all the labels that you want to fill in; samples with no labels or that are incomplete (missing view) will be ignored
@@ -82,7 +83,6 @@ fill in your dataset destination in generated `make_config.json` file
 ```
 import HTPA32x32d
 HTPA32x32d.tools.VERBOSE = True
-HTPA32x32d.tools.SYNCHRONIZATION_MAX_ERROR = 0.1
 import os
 processed_dir = "processed" # this is your directory that contains raw .TXT files from HTPA32x32d, all named YYYYMMDD_HHmm_ID{id}.TXT
 maker = HTPA32x32d.tools.TPA_Dataset_Maker()
