@@ -42,6 +42,8 @@ TPA_PREFIX_TEMPLATE = "YYYYMMDD_HHMM_ID{VIEW_IDENTIFIER}"
 TPA_NFO_FN = "tpa.nfo"
 PROCESSED_OK_KEY = "ALIGNED"
 MADE_OK_KEY = "DATASET_PREPARED"
+SYNCHRONIZATION_MAX_ERROR = 0.05
+
 
 READERS_EXTENSIONS_DICT = {
     "txt": "txt",
@@ -803,6 +805,7 @@ class TPA_Preparer(_TPA_File_Manager):
         self._log("[INFO] {} prefixes ignored out of initial {}".format(
             prefixes_ignored, prefixes2process_number0))
         self._log("Reading, aligning and removing T0 from samples...")
+        QUIT = False
         for prefix in prefixes2process:
             raw_fp_prefix = os.path.join(self.raw_input_dir, prefix)
             processed_fp_prefix = os.path.join(self.processed_destination_dir, prefix)
@@ -811,7 +814,12 @@ class TPA_Preparer(_TPA_File_Manager):
             raw_sample = TPA_Sample_from_filepaths(raw_fps)
             processed_sample =  TPA_Sample_from_data(raw_sample.arrays, raw_sample.timestamps, raw_sample.ids, processed_fps)
             processed_sample.align_timesteps(reset_T0=True)
+            if not processed_sample.test_synchronization(max_error=SYNCHRONIZATION_MAX_ERROR):
+                QUIT = True
+                self._log("[ERROR] {} did not pass synchronization test (max error {} s exceeded)!".format(prefix, SYNCHRONIZATION_MAX_ERROR))
+                continue
             processed_sample.write()
+        assert not QUIT
         self._write_nfo()
         self._write_labels_file(prefixes2process)
         self._write_make_file()

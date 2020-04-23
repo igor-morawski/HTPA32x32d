@@ -18,6 +18,7 @@ TPA_DS_CONFIG = os.path.join("testing", "testing_config.json")
 TPA_PP_CONFIG = os.path.join("testing", "preparer.json")
 TPA_DS_CONFIG_MESSED = os.path.join("testing", "testing_config_messed.json")
 
+tools.SYNCHRONIZATION_MAX_ERROR = 0.3
 
 MV_SAMPLE = [os.path.join("testing", fn) for fn in [
     "20200415_1438_ID121.TXT", "20200415_1438_ID122.TXT", "20200415_1438_ID123.TXT"]]
