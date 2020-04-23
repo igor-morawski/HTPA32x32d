@@ -684,7 +684,6 @@ class TPA_Sample_from_data(_TPA_Sample):
 
     def align_timesteps(self, reset_T0 = False):
         indexes = match_timesteps(*self.timestamps)
-        print(self.filepaths)
         for i in range(len(self.ids)):
             self.arrays[i] = self.arrays[i][indexes[i]]
             timestamps = np.array(self.timestamps[i])[indexes[i]]
