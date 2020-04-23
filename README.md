@@ -43,6 +43,7 @@ TPA_Preparer  | `*ID*.TXT` (unprocessed) <br> `{config_procesing}.json`| `*ID*.T
 TPA_Dataset_Maker  | `*ID*.TXT` (processed: aligned) <br> `{config_making}.json` <br> `tpa.nfo` <br> `labels.json` | `*ID*.TXT` <br> `tpa.nfo` | aligned sequences and labels file (filled by user) → aligned sequences and labels file <br>  - filtering out samples that miss views (incomplete sequences) <br> - filtering out samples that miss a label
 TPA_Sample_from_filepaths | list of fps | N/A | N/A 
 TPA_Sample_from_data | list of arrays, list of timestamps and list of ids | N/A |  N/A 
+
 Call *generate_config_template()* method to generate required config files. 
 
 #### Pipeline
