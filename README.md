@@ -44,6 +44,50 @@ TPA_Dataset_Maker  | `*ID*.TXT` (processed: aligned) <br> `{config_making}.json`
 
 Call *generate_config_template()* method to generate required config files. 
 
+#### Pipeline
+Example:
+
+first make a conifg file (generate a template if you don't have one yet)
+```
+import HTPA32x32d
+HTPA32x32d.tools.VERBOSE = True
+import os
+raw_dir = "raw" # this is your directory that contains raw .TXT files from HTPA32x32d, all named YYYYMMDD_HHmm_ID{id}.TXT
+preparer = HTPA32x32d.tools.TPA_Preparer()
+preparer.generate_config_template(os.path.join(raw_dir, "config.json"))
+```
+now fill your config.json, e.g.:
+```
+{
+    "raw_input_dir": "path_to_your_raw_dir",
+    "processed_destination_dir": "path_to_your_processed_dir",
+    "view_IDs": ["121", "122", "123"],
+    "tpas_extension": "TXT",
+    "MAKE": 0,
+    "PREPARE": 1
+}
+```
+now process your raw files to align them and generate labels.json file; samples that are incomplete (missing view) will be ignored
+```
+import HTPA32x32d
+HTPA32x32d.tools.VERBOSE = True
+import os
+raw_dir = "raw" # this is your directory that contains raw .TXT files from HTPA32x32d, all named YYYYMMDD_HHmm_ID{id}.TXT
+preparer = HTPA32x32d.tools.TPA_Preparer()
+preparer.config(os.path.join(raw_dir, "config.json"))
+preparer.prepare()
+```
+now fill in all the labels that you want to fill in; samples with no labels or that are incomplete (missing view) will be ignored
+fill in your dataset destination in generated `make_config.json` file 
+```
+import HTPA32x32d
+HTPA32x32d.tools.VERBOSE = True
+import os
+processed_dir = "processed" # this is your directory that contains raw .TXT files from HTPA32x32d, all named YYYYMMDD_HHmm_ID{id}.TXT
+maker = HTPA32x32d.tools.TPA_Dataset_Maker()
+maker.config(os.path.join(processed_dir, "make_config.json"))
+maker.make()
+```
 ## recorder.py
 Python program that connects to Heimann HTPA sensors given their IP addresses (in settings file) and records data captured to TXT files. Supports recording mutliple sensors at the same time. This tool is supposed to help developing multi-view thermopile sensor array monitoring system. Number of the cameras it can connect to is unlimited. 
 
