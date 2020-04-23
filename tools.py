@@ -798,6 +798,10 @@ class TPA_Preparer(_TPA_File_Manager):
         prefixes2process_number0 = len(prefixes2process)
         # filter out samples that miss views
         prefixes2process = self._remove_missing_views(prefixes, prefixes2process)
+        prefixes2process_number = len(set(prefixes2process))
+        prefixes_ignored = prefixes2process_number0 - prefixes2process_number
+        self._log("[INFO] {} prefixes ignored out of initial {}".format(
+            prefixes_ignored, prefixes2process_number0))
         self._log("Reading, aligning and removing T0 from samples...")
         for prefix in prefixes2process:
             raw_fp_prefix = os.path.join(self.raw_input_dir, prefix)
