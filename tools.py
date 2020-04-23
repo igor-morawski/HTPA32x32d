@@ -635,6 +635,21 @@ class _TPA_Sample():
                 return False
         return True
 
+    def write_gif(self): #FIXME: normalization!!!!
+        if not self.test_alignment():
+            raise Exception("Unaligned sequences cannot be synchronized!")
+        # concatenate
+        data = np.concatenate(self.arrays, axis=2)
+        pc = np2pc(data)
+        # FIXME whats the optimal duration?!
+        duration=timestamps2frame_durations(self.timestamps[0])
+        head, tail = os.path.split(self.filepaths[0])
+        fn = _TPA_get_file_prefix(tail) + "ID" + "-".join(self.ids) + ".gif"
+        fp = os.path.join(head, fn)
+        write_pc2gif(pc, fp, duration=duration)
+
+        
+
 
 class TPA_Sample_from_filepaths(_TPA_Sample):
     """
@@ -660,6 +675,7 @@ class TPA_Sample_from_filepaths(_TPA_Sample):
     def align_timesteps(self):
         raise Exception(
             "Use TPA_Sample_from_data if you need to modify arrays.")
+
 
 
 class TPA_Sample_from_data(_TPA_Sample):
@@ -781,6 +797,10 @@ class TPA_Preparer(_TPA_File_Manager):
         self.processed_destination_dir = self._json["processed_destination_dir"]
         self.view_IDs = self._json["view_IDs"]
         self.tpas_extension = self._json["tpas_extension"]
+        try:
+            self.visualize = bool(self._json['VISUALIZE'])
+        except KeyError:
+            self.visualize = False
         self.configured = True
         return True
 
@@ -804,6 +824,7 @@ class TPA_Preparer(_TPA_File_Manager):
         prefixes_ignored = prefixes2process_number0 - prefixes2process_number
         self._log("[INFO] {} prefixes ignored out of initial {}".format(
             prefixes_ignored, prefixes2process_number0))
+        self._log('"VISUALIZE" set to {}'.format(self.visualize))
         self._log("Reading, aligning and removing T0 from samples...")
         QUIT = False
         for prefix in prefixes2process:
@@ -819,6 +840,8 @@ class TPA_Preparer(_TPA_File_Manager):
                 self._log("[ERROR] {} did not pass synchronization test (max error {} s exceeded)!".format(prefix, SYNCHRONIZATION_MAX_ERROR))
                 continue
             processed_sample.write()
+            if self.visualize:
+                processed_sample.write_gif()
         assert not QUIT
         self._write_nfo()
         self._write_labels_file(prefixes2process)
