@@ -64,7 +64,8 @@ now fill your config.json, e.g.:
     "view_IDs": ["121", "122", "123"],
     "tpas_extension": "TXT",
     "MAKE": 0,
-    "PREPARE": 1
+    "PREPARE": 1,
+    "VISUALIZE": 1
 }
 ```
 now process your raw files to align them and generate labels.json file; samples that are incomplete (missing view) will be ignored
