@@ -511,12 +511,21 @@ def match_timesteps(*timestamps_lists):
 
 def resample_np_tuples(arrays, indices=None, step=None):
     """
-    Resampling for 3D arrays
-    #TODO
-    #TODO START, STOP
+    Resampling for 3D arrays.
+
+    Parameters
+    ---------
+    arrays : list
+        arays to resample 
+    indices : list, optional
+        list of indices applied to arrays
+    step : int, optional
+        resampling with a step, if given indices will be ignored
+    Returns
+    -------
+    list
+        list of resampled arrays
     """
-    if step:
-        return [array[range(0, len(array), step)] for array in arrays]
     if indices:
         if len(arrays) != len(indices):
             raise ValueError('Iterables have different lengths')
@@ -524,6 +533,8 @@ def resample_np_tuples(arrays, indices=None, step=None):
         for array, ids in zip(arrays, indices):
             resampled_arrays.append(array[ids])
         return resampled_arrays
+    if step:
+        return [array[range(0, len(array), step)] for array in arrays]
     return arrays
 
 
@@ -556,9 +567,20 @@ def save_temperature_histogram(array, fp="histogram.png", bins=None, xlabel='Tem
 
 def resample_timestamps(timestamps, indices=None, step=None):
     """
-    Resampling for timestamps
-    #TODO
-    #TODO START, STOP
+    Resampling for 3D arrays.
+
+    Parameters
+    ---------
+    arrays : list
+        arays to resample 
+    indices : list, optional
+        list of indices applied to arrays
+    step : int, optional
+        resampling with a step, if given indices will be ignored
+    Returns
+    -------
+    list
+        list of resampled arrays
     """
     ts_array = [np.array(ts) for ts in timestamps]
     return [list(ts) for ts in resample_np_tuples(ts_array, indices, step)]
@@ -623,7 +645,13 @@ def debug_HTPA32x32d_txt(filepath: str, array_size=32):
     return -1
 
 
-class _TPA_Sample(): #FIXME <<< init
+class _TPA_Sample():
+    def __init__(self, filepaths, ids, arrays, timestamps):
+        self.filepaths = filepaths
+        self.ids = ids
+        self.arrays = arrays
+        self.timestamps = timestamps
+
     def test_alignment(self):
         lengths = [len(ts) for ts in self.timestamps]
         return all(l == lengths[0] for l in lengths)
@@ -641,14 +669,13 @@ class _TPA_Sample(): #FIXME <<< init
         # concatenate
         data = np.concatenate(self.arrays, axis=2)
         pc = np2pc(data)
-        # FIXME whats the optimal duration?!
-        duration=timestamps2frame_durations(self.timestamps[0])
+        # TODO: think about other objectives than minimizing MSE
+        ts = np.sum(self.timestamps, axis=0)/len(self.timestamps)
+        duration=timestamps2frame_durations(ts)
         head, tail = os.path.split(self.filepaths[0])
         fn = _TPA_get_file_prefix(tail) + "ID" + "-".join(self.ids) + ".gif"
         fp = os.path.join(head, fn)
         write_pc2gif(pc, fp, duration=duration)
-
-        
 
 
 class TPA_Sample_from_filepaths(_TPA_Sample):
@@ -657,11 +684,12 @@ class TPA_Sample_from_filepaths(_TPA_Sample):
     """
 
     def __init__(self, filepaths):
-        self.filepaths = filepaths
-        self.ids = [self._read_ID(fp) for fp in self.filepaths]
-        samples = [read_tpa_file(fp) for fp in self.filepaths]
-        self.arrays = [sample[0] for sample in samples]
-        self.timestamps = [sample[1] for sample in samples]
+        ids = [self._read_ID(fp) for fp in filepaths]
+        samples = [read_tpa_file(fp) for fp in filepaths]
+        arrays = [sample[0] for sample in samples]
+        timestamps = [sample[1] for sample in samples]
+        _TPA_Sample.__init__(self, filepaths, ids, arrays, timestamps)
+
 
     def _read_ID(self, filepath):
         fn = os.path.basename(filepath)
@@ -677,17 +705,17 @@ class TPA_Sample_from_filepaths(_TPA_Sample):
             "Use TPA_Sample_from_data if you need to modify arrays.")
 
 
-
 class TPA_Sample_from_data(_TPA_Sample):
     """
     # TODO
     """
 
     def __init__(self, arrays, timestamps, ids, output_filepaths = None):
-        self.filepaths = None
-        self.ids = ids.copy()
-        self.arrays = arrays.copy()
-        self.timestamps = timestamps.copy()
+        filepaths = None
+        ids = ids.copy()
+        arrays = arrays.copy()
+        timestamps = timestamps.copy()
+        _TPA_Sample.__init__(self, filepaths, ids, arrays, timestamps)
         if output_filepaths:
             self.filepaths = output_filepaths
 
