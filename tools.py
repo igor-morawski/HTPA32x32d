@@ -646,6 +646,9 @@ def debug_HTPA32x32d_txt(filepath: str, array_size=32):
 
 
 class _TPA_Sample():
+    """
+    Use TPA_Sample_from_filepaths or TPA_Sample_from_data that inherit from this class.
+    """
     def __init__(self, filepaths, ids, arrays, timestamps):
         self.filepaths = filepaths
         self.ids = ids
@@ -663,13 +666,16 @@ class _TPA_Sample():
                 return False
         return True
 
-    def write_gif(self): #FIXME: normalization!!!!
+    def write_gif(self): #FUTURE: add normalization!!!!
+        """
+        Writes visualization gif to same directory as in self.filepaths,
+        the filename follows the template: FILE_PREFIX_ID{id1}-{id2}-...-{idn}.gif
+        """
         if not self.test_alignment():
             raise Exception("Unaligned sequences cannot be synchronized!")
-        # concatenate
         data = np.concatenate(self.arrays, axis=2)
         pc = np2pc(data)
-        # TODO: think about other objectives than minimizing MSE
+        #FUTURE: think about other objectives than minimizing MSE
         ts = np.sum(self.timestamps, axis=0)/len(self.timestamps)
         duration=timestamps2frame_durations(ts)
         head, tail = os.path.split(self.filepaths[0])
@@ -680,8 +686,27 @@ class _TPA_Sample():
 
 class TPA_Sample_from_filepaths(_TPA_Sample):
     """
-    # TODO
+    Data structure for loading a mutli-view TPA sample from given filepaths.
+
+    Attributes
+    ----------
+    filepaths : list
+        Filepaths of files that sample was loaded from.
+    ids : list
+        List of ids corresponding to arrays and timestamps.
+    arrays : list
+        List of arrays (TPA sequences [frames, height, width]).
+    timestamps : list
+        List of lists of timestamps corresponding to each timestep.
+
+    Methods
+    -------
+    test_synchronization(max_error)
+        returns False if max_error exceeded at any timestep (units: [s]), True otherwise.
+    test_alignment()
+        returns True if arrays are the same length. 
     """
+
 
     def __init__(self, filepaths):
         ids = [self._read_ID(fp) for fp in filepaths]
@@ -697,17 +722,45 @@ class TPA_Sample_from_filepaths(_TPA_Sample):
         return name.split("ID")[-1]
 
     def write(self):
+        """
+        Not implemUse TPA_Sample_from_data if you need to modify arrays.
+        """
         raise Exception(
             "You are trying to overwrite files. Use TPA_Sample_from_data if you need to modify arrays.")
 
     def align_timesteps(self):
+        """
+        Not implemUse TPA_Sample_from_data if you need to modify arrays.
+        """
         raise Exception(
             "Use TPA_Sample_from_data if you need to modify arrays.")
 
 
 class TPA_Sample_from_data(_TPA_Sample):
     """
-    # TODO
+    Data structure for loading a mutli-view TPA sample from given filepaths.
+
+    Attributes
+    ----------
+    ids : list
+        List of ids corresponding to arrays and timestamps.
+    arrays : list
+        List of arrays (TPA sequences [frames, height, width]).
+    timestamps : list
+        List of lists of timestamps corresponding to each timestep.
+    filepaths : list, optional
+        Filepaths to write arrays to when using write().
+
+    Methods
+    -------
+    align_timesteps(reset_T0 = False)
+        align arrays in time, refer to match_timesteps in this module for details.
+    write()
+        write arrays stored in self.arrays to filepaths in self.filepaths.
+    test_synchronization(max_error)
+        returns False if max_error exceeded at any timestep (units: [s]), True otherwise.
+    test_alignment()
+        returns True if arrays are the same length. 
     """
 
     def __init__(self, arrays, timestamps, ids, output_filepaths = None):
@@ -724,11 +777,23 @@ class TPA_Sample_from_data(_TPA_Sample):
             parent_dir, prefix+"ID"+id+"."+extension) for id in self.ids]
 
     def write(self):
+        """
+        Write stored arrays to filepaths in self.filepaths
+        """
         assert self.filepaths
         for fp, array, ts in zip(self.filepaths, self.arrays, self.timestamps):
             write_tpa_file(fp, array, ts)
+        return True
 
     def align_timesteps(self, reset_T0 = False):
+        """
+        Align timesteps. Refer to match_timesteps() in this module for details.
+
+        Parameters
+        ----------
+        reset_T0 : bool, optional
+            If True delay of the inital frame will be removed from timestamps
+        """
         indexes = match_timesteps(*self.timestamps)
         for i in range(len(self.ids)):
             self.arrays[i] = self.arrays[i][indexes[i]]
