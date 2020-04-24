@@ -58,7 +58,7 @@ raw_dir = "raw" # this is your directory that contains raw .TXT files from HTPA3
 preparer = HTPA32x32d.tools.TPA_Preparer()
 preparer.generate_config_template(os.path.join(raw_dir, "config.json"))
 ```
-now fill your config.json, e.g.:
+Now fill your config.json, e.g.:
 ```
 {
     "raw_input_dir": "path_to_your_raw_dir",
@@ -70,7 +70,7 @@ now fill your config.json, e.g.:
     "VISUALIZE": 1
 }
 ```
-now process your raw files to align them and generate labels.json file; samples that are incomplete (missing view) will be ignored
+Now process your raw files to align them and generate labels.json file; samples that are incomplete (missing view) will be ignored
 ```
 import HTPA32x32d
 HTPA32x32d.tools.VERBOSE = True
@@ -81,7 +81,7 @@ preparer.config(os.path.join(raw_dir, "config.json"))
 HTPA32x32d.tools.SYNCHRONIZATION_MAX_ERROR = 0.15
 preparer.prepare()
 ```
-now fill in all the labels that you want to fill in; samples with no labels or that are incomplete (missing view) will be ignored
+Now fill in all the labels that you want to fill in; you can use scripts in the "scripts" directory to convert gifs to mp4 (and enlarge them and label a timestep at each frame) to help you identify your labels.  Samples with no labels or that are incomplete (missing view) will be ignored.
 fill in your dataset destination in generated `make_config.json` file 
 ```
 import HTPA32x32d
