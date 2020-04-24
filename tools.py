@@ -623,7 +623,7 @@ def debug_HTPA32x32d_txt(filepath: str, array_size=32):
     return -1
 
 
-class _TPA_Sample():
+class _TPA_Sample(): #FIXME <<< init
     def test_alignment(self):
         lengths = [len(ts) for ts in self.timestamps]
         return all(l == lengths[0] for l in lengths)
