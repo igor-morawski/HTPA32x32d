@@ -649,6 +649,7 @@ class _TPA_Sample():
     """
     Use TPA_Sample_from_filepaths or TPA_Sample_from_data that inherit from this class.
     """
+
     def __init__(self, filepaths, ids, arrays, timestamps):
         self.filepaths = filepaths
         self.ids = ids
@@ -666,7 +667,7 @@ class _TPA_Sample():
                 return False
         return True
 
-    def write_gif(self): #FUTURE: add normalization!!!!
+    def write_gif(self):  # FUTURE: add normalization!!!!
         """
         Writes visualization gif to same directory as in self.filepaths,
         the filename follows the template: FILE_PREFIX_ID{id1}-{id2}-...-{idn}.gif
@@ -677,7 +678,7 @@ class _TPA_Sample():
         pc = np2pc(data)
         #FUTURE: think about other objectives than minimizing MSE
         ts = np.sum(self.timestamps, axis=0)/len(self.timestamps)
-        duration=timestamps2frame_durations(ts)
+        duration = timestamps2frame_durations(ts)
         head, tail = os.path.split(self.filepaths[0])
         fn = _TPA_get_file_prefix(tail) + "ID" + "-".join(self.ids) + ".gif"
         fp = os.path.join(head, fn)
@@ -707,14 +708,12 @@ class TPA_Sample_from_filepaths(_TPA_Sample):
         returns True if arrays are the same length. 
     """
 
-
     def __init__(self, filepaths):
         ids = [self._read_ID(fp) for fp in filepaths]
         samples = [read_tpa_file(fp) for fp in filepaths]
         arrays = [sample[0] for sample in samples]
         timestamps = [sample[1] for sample in samples]
         _TPA_Sample.__init__(self, filepaths, ids, arrays, timestamps)
-
 
     def _read_ID(self, filepath):
         fn = os.path.basename(filepath)
@@ -763,7 +762,7 @@ class TPA_Sample_from_data(_TPA_Sample):
         returns True if arrays are the same length. 
     """
 
-    def __init__(self, arrays, timestamps, ids, output_filepaths = None):
+    def __init__(self, arrays, timestamps, ids, output_filepaths=None):
         filepaths = None
         ids = ids.copy()
         arrays = arrays.copy()
@@ -785,7 +784,7 @@ class TPA_Sample_from_data(_TPA_Sample):
             write_tpa_file(fp, array, ts)
         return True
 
-    def align_timesteps(self, reset_T0 = False):
+    def align_timesteps(self, reset_T0=False):
         """
         Align timesteps. Refer to match_timesteps() in this module for details.
 
@@ -812,6 +811,10 @@ def _TPA_get_file_prefix(filepath):
 
 
 class _TPA_File_Manager():
+    """
+    TPA_Preparer and TPA_Dataset_Maker inherit from this class.
+    """
+
     def __init__(self):
         self.configured = False
         if VERBOSE:
@@ -872,6 +875,39 @@ class _TPA_File_Manager():
 
 
 class TPA_Preparer(_TPA_File_Manager):
+    """
+    Prepare files by processing raw samples (frame alignment) and generating a label file to be 
+    filled by user needed for dataset generation. 
+    - unproceesed sequences → aligned sequences and labels file (to be filled by user before making dataset)
+    - filtering out samples that miss views (incomplete sequences)
+    - aligning sequences
+    - set HTPA32x32d.tools.SYNCHRONIZATION_MAX_ERROR in [s] that you're willing to tollerate
+    Call generate_config_template() method to generate required config files.
+
+    Input: 
+    *ID*.TXT (processed: aligned)
+    {config_making}.json
+    tpa.nfo
+    labels.json
+
+    Output:
+    *ID*.TXT
+    tpa.nfo
+
+    Arguments
+    ---------
+    configured : bool
+        True if TPA_Preparer is ready to use prepare() method. Configure by calling config()
+    Methods 
+    -------
+    generate_config_template()
+        Generate config file template (json) to be filled by user 
+        and passed to config()
+    config()
+        Configure #TODO FINISH DOCS
+    
+    """
+
     def __init__(self):
         _TPA_File_Manager.__init__(self)
         self._json_required_keys = ["raw_input_dir", "processed_destination_dir", "view_IDs",
@@ -912,7 +948,8 @@ class TPA_Preparer(_TPA_File_Manager):
         prefixes2process = list(set(prefixes))
         prefixes2process_number0 = len(prefixes2process)
         # filter out samples that miss views
-        prefixes2process = self._remove_missing_views(prefixes, prefixes2process)
+        prefixes2process = self._remove_missing_views(
+            prefixes, prefixes2process)
         prefixes2process_number = len(set(prefixes2process))
         prefixes_ignored = prefixes2process_number0 - prefixes2process_number
         self._log("[INFO] {} prefixes ignored out of initial {}".format(
@@ -922,15 +959,20 @@ class TPA_Preparer(_TPA_File_Manager):
         QUIT = False
         for prefix in prefixes2process:
             raw_fp_prefix = os.path.join(self.raw_input_dir, prefix)
-            processed_fp_prefix = os.path.join(self.processed_destination_dir, prefix)
-            raw_fps = [raw_fp_prefix + "ID" + view_id + "." + self.tpas_extension for view_id in self.view_IDs]
-            processed_fps = [processed_fp_prefix + "ID" + view_id + "." + self.tpas_extension for view_id in self.view_IDs]
+            processed_fp_prefix = os.path.join(
+                self.processed_destination_dir, prefix)
+            raw_fps = [raw_fp_prefix + "ID" + view_id + "." +
+                       self.tpas_extension for view_id in self.view_IDs]
+            processed_fps = [processed_fp_prefix + "ID" + view_id +
+                             "." + self.tpas_extension for view_id in self.view_IDs]
             raw_sample = TPA_Sample_from_filepaths(raw_fps)
-            processed_sample =  TPA_Sample_from_data(raw_sample.arrays, raw_sample.timestamps, raw_sample.ids, processed_fps)
+            processed_sample = TPA_Sample_from_data(
+                raw_sample.arrays, raw_sample.timestamps, raw_sample.ids, processed_fps)
             processed_sample.align_timesteps(reset_T0=True)
             if not processed_sample.test_synchronization(max_error=SYNCHRONIZATION_MAX_ERROR):
                 QUIT = True
-                self._log("[ERROR] {} did not pass synchronization test (max error {} s exceeded)!".format(prefix, SYNCHRONIZATION_MAX_ERROR))
+                self._log("[ERROR] {} did not pass synchronization test (max error {} s exceeded)!".format(
+                    prefix, SYNCHRONIZATION_MAX_ERROR))
                 continue
             processed_sample.write()
             if self.visualize:
@@ -941,35 +983,38 @@ class TPA_Preparer(_TPA_File_Manager):
         self._write_make_file()
         self._log("Writing nfo, labels and json files...")
         self._log("OK")
-        
+
     def _write_nfo(self):
         filepath = os.path.join(self.processed_destination_dir, TPA_NFO_FN)
-        data = {PROCESSED_OK_KEY : 1}
+        data = {PROCESSED_OK_KEY: 1}
         with open(filepath, 'w') as f:
             json.dump(data, f)
-    
+
     def _write_labels_file(self, prefixes2label):
         filepath = os.path.join(self.processed_destination_dir, "labels.json")
-        data = {prefix:"" for prefix in prefixes2label}
+        data = {prefix: "" for prefix in prefixes2label}
         with open(filepath, 'w') as f:
             json.dump(data, f)
 
     def _write_make_file(self):
-        filepath = os.path.join(self.processed_destination_dir, "make_config.json")
+        filepath = os.path.join(
+            self.processed_destination_dir, "make_config.json")
         dataset_maker = TPA_Dataset_Maker()
         fill_dict = {}
-        fill_dict.update({"view_IDs":self.view_IDs})
-        fill_dict.update({"tpas_extension":self.tpas_extension})
-        fill_dict.update({"processed_input_dir":self.processed_destination_dir})
-        fill_dict.update({"labels_filepath":os.path.join(self.processed_destination_dir, "labels.json")})
-        fill_dict.update({"MAKE":1})
-        fill_dict.update({"PREPARE":0})
+        fill_dict.update({"view_IDs": self.view_IDs})
+        fill_dict.update({"tpas_extension": self.tpas_extension})
+        fill_dict.update(
+            {"processed_input_dir": self.processed_destination_dir})
+        fill_dict.update({"labels_filepath": os.path.join(
+            self.processed_destination_dir, "labels.json")})
+        fill_dict.update({"MAKE": 1})
+        fill_dict.update({"PREPARE": 0})
         dataset_maker.generate_config_template(filepath, fill_dict)
 
 
 class TPA_Dataset_Maker(_TPA_File_Manager):
     '''
-    #TODO CALL A TPA_Preparer FIRST
+    #TODO CALL A TPA_Preparer FIRST ; #TODO FINISH DOCS
     '''
 
     def __init__(self):
@@ -1001,7 +1046,7 @@ class TPA_Dataset_Maker(_TPA_File_Manager):
         self.configured = True
         return True
 
-    def generate_config_template(self, output_json_filepath, fill_dict = None):
+    def generate_config_template(self, output_json_filepath, fill_dict=None):
         init_fill_dict = {"MAKE": 1, "PREPARE": 0}
         if fill_dict:
             init_fill_dict.update(fill_dict)
@@ -1074,13 +1119,13 @@ class TPA_Dataset_Maker(_TPA_File_Manager):
         self._copy_labels_file()
         self._log("OK")
         return True
-        
+
     def _write_nfo(self):
         filepath = os.path.join(self.dataset_destination_dir, TPA_NFO_FN)
-        data = {MADE_OK_KEY : 1}
+        data = {MADE_OK_KEY: 1}
         with open(filepath, 'w') as f:
             json.dump(data, f)
-    
+
     def _copy_labels_file(self):
         src = os.path.join(self.labels_filepath)
         dst = os.path.join(self.dataset_destination_dir, "labels.json")
@@ -1095,4 +1140,3 @@ class TPA_Dataset_Maker(_TPA_File_Manager):
                 new_key = key.split("ID")[0]
                 data[new_key] = data.pop(old_key)
         return data
-
