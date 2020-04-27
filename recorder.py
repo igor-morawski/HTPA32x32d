@@ -53,7 +53,7 @@ def query_yes_no(question, default="yes"):
 def main():
     signal.signal(signal.SIGTERM, htpa32x32d_udp.service_shutdown)
     signal.signal(signal.SIGINT, htpa32x32d_udp.service_shutdown)
-    print('Starting main program')
+    print('Starting main program (TPA + RGB recorder)')
     ips = htpa32x32d_udp.loadIPList()
     if not len(ips):
         sys.exit("Add devices to the file manually, file path: {}".format(htpa32x32d_udp.IP_LIST_FP))
@@ -69,6 +69,7 @@ def main():
             "Proceed with the %d devices listed?" % len(ips), default="yes")
         if not proceed:
             sys.exit("Exiting")
+
     if proceed:
         devices = []
         for ip in ips:
@@ -76,24 +77,29 @@ def main():
         # dir and fn
         directory_path = global_T0_YYYYMMDD
         Path(directory_path).mkdir(parents=True, exist_ok=True)
+        webcam = htpa32x32d_udp.WebCam(os.path.join(directory_path,global_T0_HHMM))
         recorders = []
         for device in devices:
             fn = "{}_ID{}.TXT".format(
                 global_T0_YYYYMMDD_HHMM, device.ip.split(".")[-1])
             fp = os.path.join(directory_path, fn)
-            recorders.append(htpa32x32d_udp.Recorder(device, fp, global_T0))
+            recorders.append(htpa32x32d_udp.Recorder(device, fp, global_T0, webcam=webcam))
         try:
+            webcam.start()
             for recorder in recorders:
                 recorder.start()
             while True:
                 time.sleep(0.5)
         except htpa32x32d_udp.ServiceExit:
+            webcam.shutdown_flag.set()
             for recorder in recorders:
                 recorder.shutdown_flag.set()
 
 
 global_T0 = time.time()
 global_T0_strct = time.strptime(time.ctime(global_T0))
+global_T0_HHMM = "{:02d}{:02d}".format(
+    global_T0_strct.tm_year, global_T0_strct.tm_hour, global_T0_strct.tm_min)
 global_T0_YYYYMMDD = "{:04d}{:02d}{:02d}".format(
     global_T0_strct.tm_year, global_T0_strct.tm_mon, global_T0_strct.tm_mday)
 global_T0_YYYYMMDD_HHMM = "{:04d}{:02d}{:02d}_{:02d}{:02d}".format(global_T0_strct.tm_year,

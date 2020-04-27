@@ -8,6 +8,7 @@ import datetime
 import signal
 from pathlib import Path
 import struct
+import cv2
 
 IP_LIST_FP = os.path.join("settings", "devices.txt")
 HTPA_PORT = 30444
@@ -98,7 +99,7 @@ class Device:
 
 
 class Recorder(threading.Thread):
-    def __init__(self, device, fp, T0):
+    def __init__(self, device, fp, T0, webcam=None):
         threading.Thread.__init__(self)
         self.shutdown_flag = threading.Event()
         self.device = device
@@ -107,6 +108,7 @@ class Recorder(threading.Thread):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock.settimeout(1)
         self.sock.bind((socket.gethostbyname(socket.gethostname()), 0))
+        self.webcam = webcam
 
         try:
             self.sock.sendto(HTPA_CALLING_MSG.encode(), self.device.address)
@@ -130,7 +132,7 @@ class Recorder(threading.Thread):
             file.write('HTPA32x32d\n')
 
     def run(self):
-        print('Thread #%s started' % self.ident)
+        print('Thread [TPA] #%s started' % self.ident)
 
         packet1, packet2 = None, None
         while not self.shutdown_flag.is_set():
@@ -151,6 +153,8 @@ class Recorder(threading.Thread):
             packet_str = decode_packets(*order_packets(packet_a, packet_b))
             with open(self.fp, 'a') as file:
                 file.write("{}t: {:.2f}\n".format(packet_str, timestamp))
+            if self.webcam:
+                self.webcam.write()
 
         # CLEANUP !!!
         self.sock.sendto(HTPA_RELEASE_MSG.encode(), self.device.address)
@@ -204,7 +208,7 @@ class Cap(threading.Thread):
             raise ServiceExit
 
     def run(self):
-        print('Thread #%s started' % self.ident)
+        print('Thread [TPA] #%s started' % self.ident)
 
         packet1, packet2 = None, None
         photo_idx = 0
@@ -233,3 +237,37 @@ class Cap(threading.Thread):
             
         self.sock.sendto(HTPA_RELEASE_MSG.encode(), self.device.address)
         print("Terminated HTPA {}".format(self.device.ip))
+
+class WebCam(threading.Thread):
+    def __init__(self, dir_path, height = 720, width = 1280):
+        threading.Thread.__init__(self)
+        self.shutdown_flag = threading.Event()
+        cam = cv2.VideoCapture(0)
+        cam.set(cv2.CAP_PROP_FRAME_HEIGHT,height)
+        cam.set(cv2.CAP_PROP_FRAME_WIDTH,width)
+        ret, frame = cam.read()
+        if not ret:
+            print("No webcam found")
+            raise ServiceExit
+        self.cam = cam
+
+    def run(self):
+        print('Thread [camera] #%s started' % self.ident)
+        while not self.shutdown_flag.is_set():
+            pass
+        self.cam.release()
+
+    def write(self):
+        timestamp = time.time() - self.T0
+        fp = os.path.join(self.dir_path, "{:.2f}".format(timestamp) + ".bmp")
+        ret, frame = self.cam.read()
+        if not ret:
+            print("Webcam not reachable!")
+            raise ServiceExit
+        cv2.imwrite(fp, frame)
+
+
+        
+
+        
+
