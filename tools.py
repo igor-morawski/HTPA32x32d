@@ -645,6 +645,55 @@ def debug_HTPA32x32d_txt(filepath: str, array_size=32):
     return -1
 
 
+class _TPA_RGB_Sample():
+    """
+    Use TPA_RGB_Sample_from_filepaths or TPA_RGB_Sample_from_data that inherit from this class.
+    """
+
+    def __init__(self, filepaths, ids, arrays, timestamps, rgb_file_list, rgb_timestamps):
+        self.filepaths = filepaths
+        self.ids = ids
+        self.arrays = arrays
+        self.timestamps = timestamps
+        self.rgb_file_list = rgb_file_list
+        self.rgb_timestamps = rgb_timestamps
+
+class RGB_Sample():
+    def __init__(self, rgb_directory):
+        globbed_rgb_dir = list(glob.glob(os.path.join(rgb_directory, "*.bmp")))
+        unsorted_timestamps = [float(remove_extension(os.path.basename(fp))).replace("-", ".") for fp in globbed_rgb_dir]
+        self.timestamps, self.filepaths = (list(t) for t in zip(*sorted(zip(unsorted_timestamps, globbed_rgb_dir))))
+
+class TPA_RGB_Sample_from_filepaths():
+    """
+    #TODO
+    """
+
+    def __init__(self, tpa_filepaths, rgb_directory):
+        self.TPA = TPA_Sample_from_filepaths(tpa_filepaths)
+        self.RGB  = RGB_Sample_from_filepaths(tpa_filepaths)
+
+    def _read_ID(self, filepath):
+        fn = os.path.basename(filepath)
+        name = remove_extension(fn)
+        return name.split("ID")[-1]
+
+    def write(self):
+        """
+        Use TPA_Sample_from_data if you need to modify arrays.
+        """
+        raise Exception(
+            "Use TPA_Sample_from_data if you need to modify arrays.")
+
+    def align_timesteps(self):
+        """
+        Use TPA_Sample_from_data if you need to modify arrays.
+        """
+        raise Exception(
+            "Use TPA_Sample_from_data if you need to modify arrays.")
+
+
+
 class _TPA_Sample():
     """
     Use TPA_Sample_from_filepaths or TPA_Sample_from_data that inherit from this class.
