@@ -77,7 +77,9 @@ def main():
         # dir and fn
         directory_path = global_T0_YYYYMMDD
         Path(directory_path).mkdir(parents=True, exist_ok=True)
-        webcam = htpa32x32d_udp.WebCam(os.path.join(directory_path,global_T0_HHMM))
+        rgb_path = os.path.join(directory_path,"{}_ID{}".format(global_T0_YYYYMMDD_HHMM, "RGB"))
+        Path(rgb_path).mkdir(parents=True, exist_ok=True)
+        webcam = htpa32x32d_udp.WebCam(rgb_path, global_T0)
         recorders = []
         for device in devices:
             fn = "{}_ID{}.TXT".format(

@@ -97,7 +97,6 @@ class Device:
         self.port = HTPA_PORT
         self.address = (self.ip, self.port)
 
-
 class Recorder(threading.Thread):
     def __init__(self, device, fp, T0, webcam=None):
         threading.Thread.__init__(self)
@@ -108,7 +107,6 @@ class Recorder(threading.Thread):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock.settimeout(1)
         self.sock.bind((socket.gethostbyname(socket.gethostname()), 0))
-        self.webcam = webcam
 
         try:
             self.sock.sendto(HTPA_CALLING_MSG.encode(), self.device.address)
@@ -128,6 +126,7 @@ class Recorder(threading.Thread):
             print("Failed to bind HTPA %s while initializing" % self.device.ip)
             raise ServiceExit
 
+        self.webcam = webcam
         with open(self.fp, 'w') as file:
             file.write('HTPA32x32d\n')
 
@@ -239,7 +238,7 @@ class Cap(threading.Thread):
         print("Terminated HTPA {}".format(self.device.ip))
 
 class WebCam(threading.Thread):
-    def __init__(self, dir_path, height = 720, width = 1280):
+    def __init__(self, dir_path, T0, height = 480 , width = 640):
         threading.Thread.__init__(self)
         self.shutdown_flag = threading.Event()
         cam = cv2.VideoCapture(0)
@@ -249,25 +248,35 @@ class WebCam(threading.Thread):
         if not ret:
             print("No webcam found")
             raise ServiceExit
+        self.T0 = T0
         self.cam = cam
+        self.dir_path = dir_path
+        self.ready = True
+        self.cap = False
 
     def run(self):
         print('Thread [camera] #%s started' % self.ident)
         while not self.shutdown_flag.is_set():
-            pass
+            if (self.ready and self.cap):
+                self.ready = False
+                self.cap = False
+                self._write()
+                self.ready = True
         self.cam.release()
 
     def write(self):
+        self.cap = True
+
+    def _write(self):
         timestamp = time.time() - self.T0
-        fp = os.path.join(self.dir_path, "{:.2f}".format(timestamp) + ".bmp")
+        fp = os.path.join(self.dir_path, "{:.2f}".format(timestamp).replace(".","-") + ".bmp")
         ret, frame = self.cam.read()
         if not ret:
             print("Webcam not reachable!")
             raise ServiceExit
         cv2.imwrite(fp, frame)
+        cv2.waitKey(1)
 
 
-        
 
-        
 
