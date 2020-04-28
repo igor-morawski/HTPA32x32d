@@ -5,6 +5,7 @@ import os
 import cv2
 import json
 import glob
+import pickle
 
 import tools
 tools.VERBOSE = True
@@ -1065,3 +1066,41 @@ class Test_TPA_RGB_Sample_from_data(unittest.TestCase):
         [self.assertTrue(np.array_equal(result, expected))
          for result, expected in zip(s_o.timestamps, s.timestamps)]
         _cleanup(set(expected_rgb_filepaths + expected_tpa_fps + [os.path.join(TMP_PATH, '20200415_1438_IDRGB')]))
+
+class Test_unpack_calib_pkl(unittest.TestCase):
+    def test_result(self):
+        pkl_fp = os.path.join('testing', 'testing_TPA_source', 'calib.pkl')
+        with open(pkl_fp, 'rb') as f:
+            pkl = pickle.load(f)
+        expected_mtx = pkl['mtx']
+        expected_dist = pkl['dist']
+        expected_width = pkl['width']
+        expected_height = pkl['height']
+        expected_unparsed_keys = set(['rvecs', 'tvecs', 'ret'])
+        mtx, dist, width, height, unparsed = tools._unpack_calib_pkl(pkl_fp)
+        unparsed_keys = set(unparsed.keys())
+        self.assertTrue(np.array_equal(mtx, expected_mtx))
+        self.assertTrue(np.array_equal(dist, expected_dist))
+        self.assertEqual(width, expected_width)
+        self.assertEqual(height, expected_height)
+        self.assertEqual(unparsed_keys, expected_unparsed_keys)
+
+        
+class Test_class_Undistorter(unittest.TestCase):
+    def test_default_init(self):
+        pkl_fp = os.path.join('testing', 'testing_TPA_source', 'calib.pkl')
+        mtx, dist, width, height, unparsed = tools._unpack_calib_pkl(pkl_fp)
+        undist = tools._Undistorter(mtx, dist, width, height)
+    
+    def test_undistort(self):
+        pkl_fp = os.path.join('testing', 'testing_TPA_source', 'calib.pkl')
+        mtx, dist, width, height, unparsed = tools._unpack_calib_pkl(pkl_fp)
+        undist = tools._Undistorter(mtx, dist, width, height)
+        img = (np.random.rand(width*height*3).reshape([height, width, 3])*255).astype(np.uint8)
+        original = img.copy()
+        result = undist.undistort(img)
+        self.assertTrue(np.any(result))
+        self.assertTrue(np.array_equal(img, original))
+        self.assertFalse(np.array_equal(img, result))
+        # not actually checking undistorted result
+        

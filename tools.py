@@ -26,6 +26,7 @@ import json
 import glob
 import collections
 import shutil
+import pickle
 
 
 VERBOSE = False
@@ -900,7 +901,6 @@ class _TPA_File_Manager():
                     prefix, view_number-prefix_view_number))
         return prefixes2filter
 
-
 class TPA_Preparer(_TPA_File_Manager):
     """
     Prepare files by processing raw samples (frame alignment) and generating a label file to be 
@@ -912,7 +912,7 @@ class TPA_Preparer(_TPA_File_Manager):
     Call generate_config_template() method to generate required config files.
 
     Input: 
-    *ID*.TXT (processed: aligned)
+    *ID*.TXT
     {config_making}.json
     tpa.nfo
     labels.json
@@ -1293,3 +1293,54 @@ class TPA_RGB_Sample_from_data(_TPA_RGB_Sample):
             self.RGB.timestamps = timestamps[-1]
             self._update_TPA_RGB_timestamps()
         return True
+
+def _unpack_calib_pkl(fp : str) -> list:
+    """
+    Return content of calibration .pkl used in the project. 
+    This function serves as a guide to formatting your own calibration matrix.
+    Guide: .pkl should contain a dictionary of calib. info, e.g.:
+    {'mtx': mtx, 'dist': dist, 'width':width, 'height': height}
+    other keys are ignored
+    from
+    ret, mtx, dist, rvecs, tvecs = cv2.calibrateCamera([...])
+
+    Parameters
+    ----------
+    fp : str
+        Filepath to calibration .pkl
+
+    Returns 
+    ------
+    mtx 
+        Calibration mtx.
+    dist
+        Calibraiton dist.
+    widht
+        Calibration width.
+    height
+        Calibration height.
+    unparsed
+        The rest of the original dictionary.
+    """
+    with open(fp, 'rb') as f:
+        result = pickle.load(f)
+    mtx = result['mtx']
+    result.pop('mtx', None)
+    dist = result['dist']
+    result.pop('dist', None)
+    width = result['width']
+    result.pop('width', None)
+    height = result['height']
+    result.pop('height', None)
+    unparsed_keys = result
+    return mtx, dist, width, height, unparsed_keys
+
+class _Undistorter():
+    def __init__(self, mtx, dist, width, height):
+        newcameramtx, roi=cv2.getOptimalNewCameraMatrix(mtx,dist,(width,height),1,(width,height))
+        self.mtx = mtx
+        self.dist = dist
+        self.newcameramtx, self.roi = newcameramtx, roi
+    
+    def undistort(self, img):
+        return cv2.undistort(img, self.mtx, self.dist, None, self.newcameramtx)
