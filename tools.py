@@ -100,7 +100,6 @@ def read_tpa_file(filepath: str, array_size: int = 32):
     if reader == 'pickle':
         return pickle2np(filepath)
 
-
 def write_tpa_file(filepath: str, array, timestamps: list) -> bool:
     """
     Convert and save Heimann HTPA NumPy array shaped [frames, height, width] to a txt file.
@@ -125,6 +124,25 @@ def write_tpa_file(filepath: str, array, timestamps: list) -> bool:
     if writer == 'pickle':
         return write_np2pickle(filepath, array, timestamps)
 
+
+
+def read_txt_header(filepath: str):
+    """
+    Read Heimann HTPA .txt header.
+
+    Parameters
+    ----------
+    filepath : str
+
+    Returns
+    -------
+    str
+        TPA file header
+    """
+    with open(filepath) as f:
+        header = f.readline().rstrip()
+    return header
+    
 
 def txt2np(filepath: str, array_size: int = 32):
     """
@@ -166,7 +184,7 @@ def txt2np(filepath: str, array_size: int = 32):
     return frames, timestamps
 
 
-def write_np2txt(output_fp: str, array, timestamps: list) -> bool:
+def write_np2txt(output_fp: str, array, timestamps: list, header: str = None) -> bool:
     """
         Convert and save Heimann HTPA NumPy array shaped [frames, height, width] to a txt file.
 
@@ -178,11 +196,18 @@ def write_np2txt(output_fp: str, array, timestamps: list) -> bool:
             Temperatue distribution sequence, shaped [frames, height, width].
         timestamps : list
             List of timestamps of corresponding array frames.
+        header : str, optional
+            TXT header
         """
     ensure_parent_exists(output_fp)
     frames = np.rot90(array, k=1, axes=(1, 2))
+    if header:
+        header = header.rstrip()
+        header += "\n"
+    else:
+        header = "HTPA32x32d\n"
     with open(output_fp, 'w') as file:
-        file.write('HTPA32x32d\n')
+        file.write(header)
         for step, t in zip(frames, timestamps):
             line = ""
             for val in step.flatten("F"):

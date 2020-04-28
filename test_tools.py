@@ -168,6 +168,27 @@ class Testwrite_pc2gif(unittest.TestCase):
         self.assertTrue(os.path.exists(gif_fp))
         _cleanup([gif_fp])
 
+class Test_headers_handling(unittest.TestCase):
+    def test_read_txt_header(self):
+        fp = os.path.join("testing","20200415_1438_ID121.TXT")
+        self.assertEqual(tools.read_txt_header(fp), "HTPA32x32d")
+        fp = os.path.join("testing","expected.TXT")
+        self.assertEqual(tools.read_txt_header(fp), "ARRAYTYPE=10MBIT=12REFCAL=2T=Y")
+
+    def write_txt_header(self):
+        expected_fp = os.path.join(TMP_PATH, "test.txt")
+        expected_array = np.arange(3*32*32).reshape([-1, 32, 32])
+        expected_timestamps = [170.093, 170.218, 170.343]
+        expected_header = "TESTING"
+        tools.write_np2txt(expected_fp, expected_array, expected_timestamps, expected_header)
+        array, timestamps = tools.read_tpa_file(expected_fp)
+        header = tools.read_txt_header(expected_fp)
+        self.assertEqual(timestamps, expected_timestamps)
+        self.assertEqual(header, expected_header)
+        self.assertTrue(np.array_equal(array, expected_array))
+        _cleanup([expected_fp])
+        
+        
 
 class Test_timestamps2frame_durations(unittest.TestCase):
     def test_Result_Defaults(self):
