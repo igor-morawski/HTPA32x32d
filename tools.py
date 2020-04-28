@@ -1157,11 +1157,11 @@ class _TPA_RGB_Sample():
         self._TPA_RGB_timestsamps = self.TPA.timestamps + [self.RGB.timestamps]
 
     def test_alignment(self):
-        lengths = [len(ts) for ts in self.timestamps]
+        lengths = [len(ts) for ts in self._TPA_RGB_timestsamps]
         return all(l == lengths[0] for l in lengths)
 
     def test_synchronization(self, max_error):
-        pairs = itertools.combinations(self.timestamps, 2)
+        pairs = itertools.combinations(self._TPA_RGB_timestsamps, 2)
         for pair in pairs:
             if (np.abs(np.array(pair[0]) - np.array(pair[1])).max() > max_error):
                 return False
@@ -1175,7 +1175,7 @@ class RGB_Sample_from_filepaths():
         unsorted_timestamps = [float(remove_extension(os.path.basename(fp)).replace("-", ".")) for fp in globbed_rgb_dir]
         self.timestamps, self.filepaths = (list(t) for t in zip(*sorted(zip(unsorted_timestamps, globbed_rgb_dir))))
 
-class TPA_RGB_Sample_from_filepaths():
+class TPA_RGB_Sample_from_filepaths(_TPA_RGB_Sample):
     """
     #TODO
     """

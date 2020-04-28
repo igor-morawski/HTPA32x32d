@@ -865,3 +865,17 @@ class Test_class_TPA_RGB_Sample(unittest.TestCase):
         [self.assertTrue(np.array_equal(expected_ts, ts))
          for expected_ts, ts in zip(expected_timestamps, sample.TPA.timestamps)]
 
+    def test_test_alignment(self):
+        rgb_dir = os.path.join("testing", "20200415_1438_IDRGB")
+        sample = tools.TPA_RGB_Sample_from_filepaths(MV_SAMPLE, rgb_dir)
+        self.assertTrue(sample.test_alignment())
+        rgb_dir = os.path.join("testing", "20200415_1438_IDRGB")
+        sample = tools.TPA_RGB_Sample_from_filepaths(MV_SAMPLE, rgb_dir)
+        sample.RGB.timestamps.append(6.7)
+        self.assertFalse(sample.test_alignment())
+    
+    def test_test_synchronization(self):
+        rgb_dir = os.path.join("testing", "20200415_1438_IDRGB")
+        sample = tools.TPA_RGB_Sample_from_filepaths(MV_SAMPLE, rgb_dir)
+        self.assertTrue(sample.test_synchronization(max_error=0.5))
+        self.assertFalse(sample.test_synchronization(max_error=-1))
