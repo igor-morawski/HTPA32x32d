@@ -453,6 +453,7 @@ class Test_read_tpa_file(unittest.TestCase):
         self.assertTrue(np.array_equal(array, expected_array))
         self.assertTrue(np.array_equal(timestamps, expected_timestamps))
 
+
 class Test_write_tpa_file(unittest.TestCase):
     def test_txt(self):
         fp = os.path.join(TMP_PATH, "file.TXT")
@@ -484,6 +485,7 @@ class Test_write_tpa_file(unittest.TestCase):
         self.assertTrue(np.array_equal(timestamps, expected_timestamps))
         _cleanup([fp])
 
+
 class Test_class_TPA_Sample_from_filepaths(unittest.TestCase):
     def test_default_init(self):
         expected_samples = [tools.read_tpa_file(fp) for fp in MV_SAMPLE]
@@ -507,8 +509,8 @@ class Test_class_TPA_Sample_from_filepaths(unittest.TestCase):
     def test_test_synchronization(self):
         sample = tools.TPA_Sample_from_filepaths(MV_SAMPLE)
         max_error = 0
-        self.assertTrue(sample.test_synchronization(max_error = 0.5))
-        self.assertFalse(sample.test_synchronization(max_error = -1))
+        self.assertTrue(sample.test_synchronization(max_error=0.5))
+        self.assertFalse(sample.test_synchronization(max_error=-1))
 
     def test_test_alignment(self):
         sample_messed = tools.TPA_Sample_from_filepaths(MV_SAMPLE_MESSED)
@@ -516,7 +518,8 @@ class Test_class_TPA_Sample_from_filepaths(unittest.TestCase):
         sample = tools.TPA_Sample_from_filepaths(MV_SAMPLE)
         self.assertTrue(sample.test_alignment())
         a0, a1, a2 = sample.arrays
-        t0, t1, t2 =  sample.timestamps
+        t0, t1, t2 = sample.timestamps
+
 
 class Test_class_TPA_Sample_from_data(unittest.TestCase):
     def test_default_init(self):
@@ -527,14 +530,14 @@ class Test_class_TPA_Sample_from_data(unittest.TestCase):
         timestamps = [ts0, ts1, ts2]
         ids = ["121", "122", "123"]
         tools.TPA_Sample_from_data(arrays, timestamps, ids)
-        
+
     def test_test_synchronization(self):
         s = tools.TPA_Sample_from_filepaths(MV_SAMPLE)
         a, t, i = s.arrays, s.timestamps, s.ids
         sample = tools.TPA_Sample_from_data(a, t, i)
         max_error = 0
-        self.assertTrue(sample.test_synchronization(max_error = 0.5))
-        self.assertFalse(sample.test_synchronization(max_error = -1))
+        self.assertTrue(sample.test_synchronization(max_error=0.5))
+        self.assertFalse(sample.test_synchronization(max_error=-1))
 
     def test_test_alignment(self):
         s_m = tools.TPA_Sample_from_filepaths(MV_SAMPLE_MESSED)
@@ -545,13 +548,14 @@ class Test_class_TPA_Sample_from_data(unittest.TestCase):
         a, t, i = s.arrays, s.timestamps, s.ids
         sample = tools.TPA_Sample_from_data(a, t, i)
         self.assertTrue(sample.test_alignment())
-    
+
     def test_make_filepaths(self):
         s = tools.TPA_Sample_from_filepaths(MV_SAMPLE)
         a, t, i = s.arrays, s.timestamps, s.ids
         sample = tools.TPA_Sample_from_data(a, t, i)
         self.assertFalse(sample.filepaths)
-        expected_fps = [os.path.join("test", "prefix_ID"+id+".ext") for id in i]
+        expected_fps = [os.path.join(
+            "test", "prefix_ID"+id+".ext") for id in i]
         sample.make_filepaths("test", "prefix_", "ext")
         self.assertTrue(sample.filepaths)
         self.assertEqual(sample.filepaths, expected_fps)
@@ -560,14 +564,17 @@ class Test_class_TPA_Sample_from_data(unittest.TestCase):
         s = tools.TPA_Sample_from_filepaths(MV_SAMPLE)
         a, t, i = s.arrays, s.timestamps, s.ids
         sample = tools.TPA_Sample_from_data(a, t, i)
-        expected_fps = [os.path.join(TMP_PATH, "prefix_ID"+id+".txt") for id in i]
+        expected_fps = [os.path.join(
+            TMP_PATH, "prefix_ID"+id+".txt") for id in i]
         sample.make_filepaths(TMP_PATH, "prefix_", "txt")
         self.assertTrue(sample.filepaths)
         self.assertEqual(sample.filepaths, expected_fps)
         sample.write()
         s_o = tools.TPA_Sample_from_filepaths(sample.filepaths)
-        [self.assertTrue(np.array_equal(result, expected)) for result, expected in zip(s_o.arrays, s.arrays)]
-        [self.assertTrue(np.array_equal(result, expected)) for result, expected in zip(s_o.timestamps, s.timestamps)]
+        [self.assertTrue(np.array_equal(result, expected))
+         for result, expected in zip(s_o.arrays, s.arrays)]
+        [self.assertTrue(np.array_equal(result, expected))
+         for result, expected in zip(s_o.timestamps, s.timestamps)]
         _cleanup(sample.filepaths)
 
     def test_align_timesteps(self):
@@ -601,14 +608,14 @@ class Test_class_TPA_Sample_from_data(unittest.TestCase):
         self.assertFalse(np.array_equal(a[1][-1], processed_a[1][-1]))
         self.assertTrue(np.array_equal(a[0][11], processed_a[0][-1]))
         self.assertTrue(np.array_equal(a[1][11], processed_a[1][-1]))
-        self.assertTrue(np.array_equal(a[2][-1], processed_a[2][-1])) 
+        self.assertTrue(np.array_equal(a[2][-1], processed_a[2][-1]))
 
     def test_reset_T0_align_timesteps(self):
         s = tools.TPA_Sample_from_filepaths(MV_SAMPLE_MESSED)
         a, t, i = s.arrays, s.timestamps, s.ids
         sample = tools.TPA_Sample_from_data(a, t, i)
         # align now
-        sample.align_timesteps(reset_T0 = True)
+        sample.align_timesteps(reset_T0=True)
         processed_a, processed_t, processed_i = sample.arrays, sample.timestamps, sample.ids
         # test
         lengths = [len(ts) for ts in t]
@@ -626,7 +633,6 @@ class Test_class_TPA_Sample_from_data(unittest.TestCase):
         self.assertEqual(processed_t[1][0], 0)
         np.testing.assert_almost_equal(processed_t[2][0], 0.05, 5)
 
-            
 
 class Test_class_TPA_Dataset_Maker(unittest.TestCase):
     def test_generate_config_template(self):
@@ -646,7 +652,7 @@ class Test_class_TPA_Dataset_Maker(unittest.TestCase):
         with self.assertRaises(Exception) as context:
             tpa_dataset_messed.config(TPA_DS_CONFIG_MESSED)
         self.assertFalse(tpa_dataset_messed.configured)
-        
+
     def test_make(self):
         with open(TPA_DS_CONFIG) as f:
             cnfg = json.load(f)
@@ -655,16 +661,20 @@ class Test_class_TPA_Dataset_Maker(unittest.TestCase):
         self.assertFalse(tpa_dataset.configured)
         tpa_dataset.config(TPA_DS_CONFIG)
         tpa_dataset.make()
-        fns = ["20200415_1438_ID121.TXT", "20200415_1438_ID122.TXT", "20200415_1438_ID123.TXT"]
+        fns = ["20200415_1438_ID121.TXT",
+               "20200415_1438_ID122.TXT", "20200415_1438_ID123.TXT"]
         fns = fns + ["tpa.nfo", "labels.json"]
         with open(os.path.join(dest, "tpa.nfo")) as f:
             data = json.load(f)
             self.assertTrue(data[tools.MADE_OK_KEY])
         expected_fps = [os.path.join(dest, f) for f in fns]
-        self.assertEqual(set(glob.glob(os.path.join(dest, "*"))),set(expected_fps))
+        self.assertEqual(
+            set(glob.glob(os.path.join(dest, "*"))), set(expected_fps))
         _cleanup(expected_fps)
         if os.path.exists(dest):
             os.rmdir(dest)
+
+
 class Test_class_TPA_Preparer(unittest.TestCase):
     def test_generate_config_template(self):
         gen = tools.TPA_Preparer()
@@ -683,7 +693,7 @@ class Test_class_TPA_Preparer(unittest.TestCase):
         with self.assertRaises(Exception) as context:
             tpa_preparer_messed.config(TPA_DS_CONFIG_MESSED)
         self.assertFalse(tpa_preparer_messed.configured)
-        
+
     def test_prepare(self):
         with open(TPA_PP_CONFIG) as f:
             cnfg = json.load(f)
@@ -692,13 +702,17 @@ class Test_class_TPA_Preparer(unittest.TestCase):
         self.assertFalse(tpa_preparer.configured)
         tpa_preparer.config(TPA_PP_CONFIG)
         tpa_preparer.prepare()
-        fns1 = ["20200415_1438_ID121.TXT", "20200415_1438_ID122.TXT", "20200415_1438_ID123.TXT"]
-        fns2 = ["NO_LABELS_ID121.TXT", "NO_LABELS_ID122.TXT", "NO_LABELS_ID123.TXT"]
-        fns3 = ["20200415_1515_ID121.TXT", "20200415_1515_ID122.TXT", "20200415_1515_ID123.TXT"]
+        fns1 = ["20200415_1438_ID121.TXT",
+                "20200415_1438_ID122.TXT", "20200415_1438_ID123.TXT"]
+        fns2 = ["NO_LABELS_ID121.TXT",
+                "NO_LABELS_ID122.TXT", "NO_LABELS_ID123.TXT"]
+        fns3 = ["20200415_1515_ID121.TXT",
+                "20200415_1515_ID122.TXT", "20200415_1515_ID123.TXT"]
         fns4 = ["tpa.nfo", "labels.json", "make_config.json"]
         fns = fns1 + fns2 + fns3 + fns4
         expected_fps = [os.path.join(dest, f) for f in fns]
-        self.assertEqual(set(glob.glob(os.path.join(dest, "*"))),set(expected_fps))
+        self.assertEqual(
+            set(glob.glob(os.path.join(dest, "*"))), set(expected_fps))
         with open(os.path.join(dest, fns4[0])) as f:
             data = json.load(f)
         key = tools.PROCESSED_OK_KEY
@@ -710,6 +724,7 @@ class Test_class_TPA_Preparer(unittest.TestCase):
         _cleanup(expected_fps)
         if os.path.exists(dest):
             os.rmdir(dest)
+
 
 class Test_class_Integration_TPA_Preparer_Dataset(unittest.TestCase):
     def test_no_labels(self):
@@ -732,21 +747,28 @@ class Test_class_Integration_TPA_Preparer_Dataset(unittest.TestCase):
         # DON'T fill the labels fiile
         # make dataset
         tpa_maker = tools.TPA_Dataset_Maker()
-        tpa_maker.config(os.path.join(processed_destination_dir, "make_config.json"))
+        tpa_maker.config(os.path.join(
+            processed_destination_dir, "make_config.json"))
         tpa_maker.make()
         # labels are empty, all files should be skipped!
-        self.assertEqual(set(glob.glob(os.path.join(dataset_destination_dir, "*"))),set())
-        fns1 = ["20200415_1438_ID121.TXT", "20200415_1438_ID122.TXT", "20200415_1438_ID123.TXT"]
-        fns2 = ["NO_LABELS_ID121.TXT", "NO_LABELS_ID122.TXT", "NO_LABELS_ID123.TXT"]
-        fns3 = ["20200415_1515_ID121.TXT", "20200415_1515_ID122.TXT", "20200415_1515_ID123.TXT"]
+        self.assertEqual(
+            set(glob.glob(os.path.join(dataset_destination_dir, "*"))), set())
+        fns1 = ["20200415_1438_ID121.TXT",
+                "20200415_1438_ID122.TXT", "20200415_1438_ID123.TXT"]
+        fns2 = ["NO_LABELS_ID121.TXT",
+                "NO_LABELS_ID122.TXT", "NO_LABELS_ID123.TXT"]
+        fns3 = ["20200415_1515_ID121.TXT",
+                "20200415_1515_ID122.TXT", "20200415_1515_ID123.TXT"]
         fns4 = ["tpa.nfo", "labels.json", "make_config.json"]
         fns = fns1 + fns2 + fns3 + fns4
-        expected_fps = [os.path.join(processed_destination_dir, f) for f in fns]
+        expected_fps = [os.path.join(
+            processed_destination_dir, f) for f in fns]
         _cleanup(expected_fps)
         if os.path.exists(processed_destination_dir):
             os.rmdir(processed_destination_dir)
         if os.path.exists(dataset_destination_dir):
             os.rmdir(dataset_destination_dir)
+
     def test_making(self):
         # process data
         with open(TPA_PP_CONFIG) as f:
@@ -773,29 +795,73 @@ class Test_class_Integration_TPA_Preparer_Dataset(unittest.TestCase):
             json.dump(labels, f)
         # make dataset
         tpa_maker = tools.TPA_Dataset_Maker()
-        tpa_maker.config(os.path.join(processed_destination_dir, "make_config.json"))
+        tpa_maker.config(os.path.join(
+            processed_destination_dir, "make_config.json"))
         tpa_maker.make()
         # NO_LABEL_ shouldnt be processed
-        fns1 = ["20200415_1438_ID121.TXT", "20200415_1438_ID122.TXT", "20200415_1438_ID123.TXT"]
-        fns3 = ["20200415_1515_ID121.TXT", "20200415_1515_ID122.TXT", "20200415_1515_ID123.TXT"]
+        fns1 = ["20200415_1438_ID121.TXT",
+                "20200415_1438_ID122.TXT", "20200415_1438_ID123.TXT"]
+        fns3 = ["20200415_1515_ID121.TXT",
+                "20200415_1515_ID122.TXT", "20200415_1515_ID123.TXT"]
         fns5 = ["tpa.nfo", "labels.json"]
         fns_ds = fns1+fns3+fns5
-        expected_fps_ds = [os.path.join(dataset_destination_dir, f) for f in fns_ds]
-        self.assertEqual(set(glob.glob(os.path.join(dataset_destination_dir, "*"))),set(expected_fps_ds))
-        fns1 = ["20200415_1438_ID121.TXT", "20200415_1438_ID122.TXT", "20200415_1438_ID123.TXT"]
-        fns2 = ["NO_LABELS_ID121.TXT", "NO_LABELS_ID122.TXT", "NO_LABELS_ID123.TXT"]
-        fns3 = ["20200415_1515_ID121.TXT", "20200415_1515_ID122.TXT", "20200415_1515_ID123.TXT"]
+        expected_fps_ds = [os.path.join(
+            dataset_destination_dir, f) for f in fns_ds]
+        self.assertEqual(set(glob.glob(os.path.join(
+            dataset_destination_dir, "*"))), set(expected_fps_ds))
+        fns1 = ["20200415_1438_ID121.TXT",
+                "20200415_1438_ID122.TXT", "20200415_1438_ID123.TXT"]
+        fns2 = ["NO_LABELS_ID121.TXT",
+                "NO_LABELS_ID122.TXT", "NO_LABELS_ID123.TXT"]
+        fns3 = ["20200415_1515_ID121.TXT",
+                "20200415_1515_ID122.TXT", "20200415_1515_ID123.TXT"]
         fns4 = ["tpa.nfo", "labels.json", "make_config.json"]
         fns_pp = fns1 + fns2 + fns3 + fns4
-        expected_fps_pp = [os.path.join(processed_destination_dir, f) for f in fns_pp]
+        expected_fps_pp = [os.path.join(
+            processed_destination_dir, f) for f in fns_pp]
         _cleanup(expected_fps_pp)
         if os.path.exists(processed_destination_dir):
             os.rmdir(processed_destination_dir)
         _cleanup(expected_fps_ds)
         if os.path.exists(dataset_destination_dir):
             os.rmdir(dataset_destination_dir)
-        
-        
 
 
+class RGB_Sample_from_filepaths(unittest.TestCase):
+    def test_init(self):
+        sample_dir = os.path.join("testing", "20200415_1438_IDRGB")
+        sample = tools.RGB_Sample_from_filepaths(sample_dir)
+        expected_timestamps = [1.52, 1.63, 1.75, 1.86, 1.99,
+                               2.11, 2.22, 2.35, 2.46, 2.58, 2.69, 2.85, 2.97, 3.1]
+        expected_filepaths = ['testing/20200415_1438_IDRGB/1-52.bmp', 'testing/20200415_1438_IDRGB/1-63.bmp', 'testing/20200415_1438_IDRGB/1-75.bmp', 'testing/20200415_1438_IDRGB/1-86.bmp', 'testing/20200415_1438_IDRGB/1-99.bmp', 'testing/20200415_1438_IDRGB/2-11.bmp', 'testing/20200415_1438_IDRGB/2-22.bmp',
+                              'testing/20200415_1438_IDRGB/2-35.bmp', 'testing/20200415_1438_IDRGB/2-46.bmp', 'testing/20200415_1438_IDRGB/2-58.bmp', 'testing/20200415_1438_IDRGB/2-69.bmp', 'testing/20200415_1438_IDRGB/2-85.bmp', 'testing/20200415_1438_IDRGB/2-97.bmp', 'testing/20200415_1438_IDRGB/3-10.bmp']
+        self.assertEqual(expected_timestamps, sample.timestamps)
+        self.assertEqual(expected_filepaths, sample.filepaths)
+
+class Test_class_TPA_RGB_Sample(unittest.TestCase):
+    def test_init(self):
+        rgb_dir = os.path.join("testing", "20200415_1438_IDRGB")
+        sample = tools.TPA_RGB_Sample_from_filepaths(MV_SAMPLE, rgb_dir)
+        self.assertTrue(sample.TPA)
+        self.assertTrue(sample.RGB)
+        expected_rgb_timestamps = [1.52, 1.63, 1.75, 1.86, 1.99,
+                               2.11, 2.22, 2.35, 2.46, 2.58, 2.69, 2.85, 2.97, 3.1]
+        expected_rgb_filepaths = ['testing/20200415_1438_IDRGB/1-52.bmp', 'testing/20200415_1438_IDRGB/1-63.bmp', 'testing/20200415_1438_IDRGB/1-75.bmp', 'testing/20200415_1438_IDRGB/1-86.bmp', 'testing/20200415_1438_IDRGB/1-99.bmp', 'testing/20200415_1438_IDRGB/2-11.bmp', 'testing/20200415_1438_IDRGB/2-22.bmp',
+                              'testing/20200415_1438_IDRGB/2-35.bmp', 'testing/20200415_1438_IDRGB/2-46.bmp', 'testing/20200415_1438_IDRGB/2-58.bmp', 'testing/20200415_1438_IDRGB/2-69.bmp', 'testing/20200415_1438_IDRGB/2-85.bmp', 'testing/20200415_1438_IDRGB/2-97.bmp', 'testing/20200415_1438_IDRGB/3-10.bmp']
+        self.assertEqual(expected_rgb_timestamps, sample.RGB.timestamps)
+        self.assertEqual(expected_rgb_filepaths, sample.RGB.filepaths)
+        expected_samples = [tools.read_tpa_file(fp) for fp in MV_SAMPLE]
+        array0, ts0 = tools.txt2np(MV_SAMPLE[0])
+        array1, ts1 = tools.txt2np(MV_SAMPLE[1])
+        array2, ts2 = tools.txt2np(MV_SAMPLE[2])
+        expected_arrays = [array0, array1, array2]
+        expected_timestamps = [ts0, ts1, ts2]
+        expected_ids = ["121", "122", "123"]
+        self.assertEqual(len(sample.TPA.filepaths), 3)
+        self.assertEqual(sample.TPA.filepaths, MV_SAMPLE)
+        self.assertEqual(sample.TPA.ids, expected_ids)
+        [self.assertTrue(np.array_equal(expected_array, array))
+         for expected_array, array in zip(expected_arrays, sample.TPA.arrays)]
+        [self.assertTrue(np.array_equal(expected_ts, ts))
+         for expected_ts, ts in zip(expected_timestamps, sample.TPA.timestamps)]
 

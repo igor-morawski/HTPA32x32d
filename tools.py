@@ -644,55 +644,7 @@ def debug_HTPA32x32d_txt(filepath: str, array_size=32):
         frames = np.rot90(frames, k=-1, axes=(1, 2))
     return -1
 
-
-class _TPA_RGB_Sample():
-    """
-    Use TPA_RGB_Sample_from_filepaths or TPA_RGB_Sample_from_data that inherit from this class.
-    """
-
-    def __init__(self, filepaths, ids, arrays, timestamps, rgb_file_list, rgb_timestamps):
-        self.filepaths = filepaths
-        self.ids = ids
-        self.arrays = arrays
-        self.timestamps = timestamps
-        self.rgb_file_list = rgb_file_list
-        self.rgb_timestamps = rgb_timestamps
-
-class RGB_Sample():
-    def __init__(self, rgb_directory):
-        globbed_rgb_dir = list(glob.glob(os.path.join(rgb_directory, "*.bmp")))
-        unsorted_timestamps = [float(remove_extension(os.path.basename(fp))).replace("-", ".") for fp in globbed_rgb_dir]
-        self.timestamps, self.filepaths = (list(t) for t in zip(*sorted(zip(unsorted_timestamps, globbed_rgb_dir))))
-
-class TPA_RGB_Sample_from_filepaths():
-    """
-    #TODO
-    """
-
-    def __init__(self, tpa_filepaths, rgb_directory):
-        self.TPA = TPA_Sample_from_filepaths(tpa_filepaths)
-        self.RGB  = RGB_Sample_from_filepaths(tpa_filepaths)
-
-    def _read_ID(self, filepath):
-        fn = os.path.basename(filepath)
-        name = remove_extension(fn)
-        return name.split("ID")[-1]
-
-    def write(self):
-        """
-        Use TPA_Sample_from_data if you need to modify arrays.
-        """
-        raise Exception(
-            "Use TPA_Sample_from_data if you need to modify arrays.")
-
-    def align_timesteps(self):
-        """
-        Use TPA_Sample_from_data if you need to modify arrays.
-        """
-        raise Exception(
-            "Use TPA_Sample_from_data if you need to modify arrays.")
-
-
+### TPA only samples
 
 class _TPA_Sample():
     """
@@ -1189,3 +1141,61 @@ class TPA_Dataset_Maker(_TPA_File_Manager):
                 new_key = key.split("ID")[0]
                 data[new_key] = data.pop(old_key)
         return data
+
+
+### TPA (multi-view) + RGB (one-view) samples
+
+class _TPA_RGB_Sample():
+    """
+    Use TPA_RGB_Sample_from_filepaths or TPA_RGB_Sample_from_data that inherit from this class.
+    """
+
+    def __init__(self, TPA, RGB):
+    #def __init__(self, filepaths, ids, arrays, timestamps, rgb_file_list, rgb_timestamps):
+        self.TPA = TPA
+        self.RGB = RGB
+        self._TPA_RGB_timestsamps = self.TPA.timestamps + [self.RGB.timestamps]
+
+    def test_alignment(self):
+        lengths = [len(ts) for ts in self.timestamps]
+        return all(l == lengths[0] for l in lengths)
+
+    def test_synchronization(self, max_error):
+        pairs = itertools.combinations(self.timestamps, 2)
+        for pair in pairs:
+            if (np.abs(np.array(pair[0]) - np.array(pair[1])).max() > max_error):
+                return False
+        return True
+
+class RGB_Sample_from_filepaths():
+    def __init__(self, rgb_directory):
+        globbed_rgb_dir = list(glob.glob(os.path.join(rgb_directory, "*-*[0-9].bmp")))
+        if not globbed_rgb_dir:
+            raise ValueError("Specified directory is empty or doesn't exist.")
+        unsorted_timestamps = [float(remove_extension(os.path.basename(fp)).replace("-", ".")) for fp in globbed_rgb_dir]
+        self.timestamps, self.filepaths = (list(t) for t in zip(*sorted(zip(unsorted_timestamps, globbed_rgb_dir))))
+
+class TPA_RGB_Sample_from_filepaths():
+    """
+    #TODO
+    """
+
+    def __init__(self, tpa_filepaths, rgb_directory):
+        TPA = TPA_Sample_from_filepaths(tpa_filepaths)
+        RGB  = RGB_Sample_from_filepaths(rgb_directory)
+        _TPA_RGB_Sample.__init__(self, TPA, RGB)
+
+    def write(self):
+        """
+        Use TPA_Sample_from_data if you need to modify arrays.
+        """
+        raise Exception(
+            "Use TPA_RGB_Sample_from_data if you need to modify arrays.")
+
+    def align_timesteps(self):
+        """
+        Use TPA_Sample_from_data if you need to modify arrays.
+        """
+        raise Exception(
+            "Use TPA_RGB_Sample_from_data if you need to modify arrays.")
+
