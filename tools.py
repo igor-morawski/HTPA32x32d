@@ -901,7 +901,70 @@ class _TPA_File_Manager():
                     prefix, view_number-prefix_view_number))
         return prefixes2filter
 
-class TPA_Preparer(_TPA_File_Manager):
+class _Preparer(_TPA_File_Manager):
+    def __init__(self):
+        _TPA_File_Manager.__init__(self)
+        self._json_required_keys = ["raw_input_dir", "processed_destination_dir", "view_IDs",
+                                    "tpas_extension", "MAKE", "PREPARE"]
+
+    def generate_config_template(self, output_json_filepath):
+        self._generate_config_template(
+            output_json_filepath, {"MAKE": 0, "PREPARE": 1})
+
+    def _config(self, json_filepath):
+        with open(json_filepath) as f:
+            self._json = json.load(f)
+        assert self._validate_config()
+        assert self._json["PREPARE"]
+        self.raw_input_dir = self._json["raw_input_dir"]
+        self.processed_destination_dir = self._json["processed_destination_dir"]
+        self.view_IDs = self._json["view_IDs"]
+        self.tpas_extension = self._json["tpas_extension"]
+        try:
+            self.visualize = bool(self._json['VISUALIZE'])
+        except KeyError:
+            self.visualize = False
+        try:
+            self.undistort = bool(self._json['UNDISTORT'])
+        except KeyError:
+            self.undistort = False
+        try:
+            self.calib_fp = bool(self._json['calib_fp'])
+        except KeyError:
+            self.calib_fp = None
+        self.configured = True
+        return True
+
+    def _write_nfo(self):
+        filepath = os.path.join(self.processed_destination_dir, TPA_NFO_FN)
+        data = {PROCESSED_OK_KEY: 1}
+        with open(filepath, 'w') as f:
+            json.dump(data, f)
+
+    def _write_labels_file(self, prefixes2label):
+        filepath = os.path.join(self.processed_destination_dir, "labels.json")
+        data = {prefix: "" for prefix in prefixes2label}
+        with open(filepath, 'w') as f:
+            json.dump(data, f)
+
+    def _write_make_file(self):
+        filepath = os.path.join(
+            self.processed_destination_dir, "make_config.json")
+        dataset_maker = TPA_Dataset_Maker()
+        fill_dict = {}
+        fill_dict.update({"view_IDs": self.view_IDs})
+        fill_dict.update({"tpas_extension": self.tpas_extension})
+        fill_dict.update(
+            {"processed_input_dir": self.processed_destination_dir})
+        fill_dict.update({"labels_filepath": os.path.join(
+            self.processed_destination_dir, "labels.json")})
+        fill_dict.update({"MAKE": 1})
+        fill_dict.update({"PREPARE": 0})
+        dataset_maker.generate_config_template(filepath, fill_dict)
+
+
+
+class TPA_Preparer(_Preparer):
     """
     Prepare files by processing raw samples (frame alignment) and generating a label file to be 
     filled by user needed for dataset generation. 
@@ -936,28 +999,12 @@ class TPA_Preparer(_TPA_File_Manager):
     """
 
     def __init__(self):
-        _TPA_File_Manager.__init__(self)
-        self._json_required_keys = ["raw_input_dir", "processed_destination_dir", "view_IDs",
-                                    "tpas_extension", "MAKE", "PREPARE"]
-
-    def generate_config_template(self, output_json_filepath):
-        self._generate_config_template(
-            output_json_filepath, {"MAKE": 0, "PREPARE": 1})
+        _Preparer.__init__(self)
 
     def config(self, json_filepath):
-        with open(json_filepath) as f:
-            self._json = json.load(f)
-        assert self._validate_config()
-        assert self._json["PREPARE"]
-        self.raw_input_dir = self._json["raw_input_dir"]
-        self.processed_destination_dir = self._json["processed_destination_dir"]
-        self.view_IDs = self._json["view_IDs"]
-        self.tpas_extension = self._json["tpas_extension"]
-        try:
-            self.visualize = bool(self._json['VISUALIZE'])
-        except KeyError:
-            self.visualize = False
-        self.configured = True
+        self._config(json_filepath)
+        if any([self.undistort, self.calib_fp]):
+            self._log("[WARNING] UNDISTORT and calib_fp not supported in TPA_Preparer")
         return True
 
     def prepare(self):
@@ -1010,33 +1057,6 @@ class TPA_Preparer(_TPA_File_Manager):
         self._write_make_file()
         self._log("Writing nfo, labels and json files...")
         self._log("OK")
-
-    def _write_nfo(self):
-        filepath = os.path.join(self.processed_destination_dir, TPA_NFO_FN)
-        data = {PROCESSED_OK_KEY: 1}
-        with open(filepath, 'w') as f:
-            json.dump(data, f)
-
-    def _write_labels_file(self, prefixes2label):
-        filepath = os.path.join(self.processed_destination_dir, "labels.json")
-        data = {prefix: "" for prefix in prefixes2label}
-        with open(filepath, 'w') as f:
-            json.dump(data, f)
-
-    def _write_make_file(self):
-        filepath = os.path.join(
-            self.processed_destination_dir, "make_config.json")
-        dataset_maker = TPA_Dataset_Maker()
-        fill_dict = {}
-        fill_dict.update({"view_IDs": self.view_IDs})
-        fill_dict.update({"tpas_extension": self.tpas_extension})
-        fill_dict.update(
-            {"processed_input_dir": self.processed_destination_dir})
-        fill_dict.update({"labels_filepath": os.path.join(
-            self.processed_destination_dir, "labels.json")})
-        fill_dict.update({"MAKE": 1})
-        fill_dict.update({"PREPARE": 0})
-        dataset_maker.generate_config_template(filepath, fill_dict)
 
 
 class TPA_Dataset_Maker(_TPA_File_Manager):
@@ -1344,3 +1364,127 @@ class _Undistorter():
     
     def undistort(self, img):
         return cv2.undistort(img, self.mtx, self.dist, None, self.newcameramtx)
+
+
+class TPA_RGB_Preparer(_Preparer):
+    """
+    Prepare files by processing raw samples (frame alignment) and generating a label file to be 
+    filled by user needed for dataset generation. 
+    - unproceesed sequences → aligned sequences and labels file (to be filled by user before making dataset)
+    - filtering out samples that miss views (incomplete sequences)
+    - aligning sequences
+    - set HTPA32x32d.tools.SYNCHRONIZATION_MAX_ERROR in [s] that you're willing to tollerate
+    Call generate_config_template() method to generate required config files.
+
+    Input: 
+    *ID*.TXT
+    {config_making}.json
+    tpa.nfo
+    labels.json
+
+    Output:
+    *ID*.TXT
+    tpa.nfo
+
+    Arguments
+    ---------
+    configured : bool
+        True if TPA_Preparer is ready to use prepare() method. Configure by calling config()
+    Methods 
+    -------
+    generate_config_template()
+        Generate config file template (json) to be filled by user 
+        and passed to config()
+    config()
+        Configure #TODO FINISH DOCS
+    
+    """
+
+    def __init__(self):
+        _Preparer.__init__(self)
+
+    def config(self, json_filepath):
+        self._config(json_filepath)
+        if any([self.visualize]):
+            self._log("[WARNING] VISUALIZE not supported in RGB_TPA_Preparer")
+        if (self.tpas_extension.lower() != 'txt'):
+            msg = "[ERROR] Only .txt supported!"
+            raise Exception(msg)
+        lowercase_ids = [id.lower() for id in self.view_IDs]
+        if 'rgb' in lowercase_ids: 
+            msg = "[ERROR] RGB in view_IDs skipped, RGB is handled by default, no need to fill it in view_IDs. Remove it from view_IDs."
+            self._log(msg)
+            raise Exception(msg)
+        if self.undistort and (not os.path.exists(self.calib_fp)):
+            msg = "[ERROR] {} doesn't exist while UNDISTORT is True".format(self.calib_fp)
+            self._log(msg)
+            raise Exception(msg)
+        return True
+
+    def prepare(self):
+        if not self.configured:
+            msg = "Configure with config() first"
+            self._log(msg)
+            raise Exception(msg)
+        ensure_path_exists(self.raw_input_dir)
+        glob_patterns = [os.path.join(
+            self.raw_input_dir, "*ID"+id+"."+self.tpas_extension) for id in self.view_IDs]
+        files = []
+        for pattern in glob_patterns:
+            files.extend(glob.glob(pattern))
+        prefixes = [_TPA_get_file_prefix(f) for f in files]
+        prefixes2process = list(set(prefixes))
+        prefixes2process_number0 = len(prefixes2process)
+        # filter out samples that miss views
+        prefixes2process = self._remove_missing_views(
+            prefixes, prefixes2process)
+        rgb_dirs_prefixes = set([_TPA_get_file_prefix(dir) for dir in glob.glob(self.raw_input_dir, "*IDRGB")])
+        for prefix in prefixes2process:
+            if prefix not in glob.glob("testing/testing_TPA_source/*RGB"):
+                prefixes2process.remove(prefix)
+                self._log('[WARNING] Ignoring prefix {} because it misses RGB view'.format(prefix))
+        prefixes2process_number = len(set(prefixes2process))
+        prefixes_ignored = prefixes2process_number0 - prefixes2process_number
+        self._log("[INFO] {} prefixes ignored out of initial {}".format(
+            prefixes_ignored, prefixes2process_number0))
+        self._log('"UNDISTORT" set to {}'.format(self.undistort))
+        self._log("Reading, aligning and removing T0 from samples...")
+        QUIT = False
+        if self.undistort:
+            mtx, dist, width, height, _ = _unpack_calib_pkl(self.calib_fp)
+            self._undistorter = _Undistorter()
+
+        for prefix in prefixes2process:
+            raw_fp_prefix = os.path.join(self.raw_input_dir, prefix)
+            processed_fp_prefix = os.path.join(
+                self.processed_destination_dir, prefix)
+            tpa_fps = [raw_fp_prefix + "ID" + view_id + "." +
+                       self.tpas_extension for view_id in self.view_IDs]
+            processed_fps = [processed_fp_prefix + "ID" + view_id +
+                             "." + self.tpas_extension for view_id in self.view_IDs]
+            rgb_dir = os.path.join(self.raw_input_dir, prefix + "RGB")
+            processed_rgb_dir = os.path.join(self.processed_destination_dir, prefix + "RGB")
+            raw_sample = TPA_RGB_Sample_from_filepaths(tpa_fps, rgb_dir)
+            processed_sample = TPA_RGB_Sample_from_data(raw_sample.TPA.arrays, raw_sample.TPA.timestamps, raw_sample.TPA.ids,
+                                                        rgb_dir, tpa_output_filepaths=processed_fps, rgb_output_directory=processed_rgb_dir)
+            processed_sample.align_timesteps(reset_T0=True)
+            if not processed_sample.test_synchronization(max_error=SYNCHRONIZATION_MAX_ERROR):
+                QUIT = True
+                self._log("[ERROR] {} did not pass synchronization test (max error {} s exceeded)!".format(
+                    prefix, SYNCHRONIZATION_MAX_ERROR))
+                continue
+            processed_sample.write()
+            if self.visualize:
+                processed_sample.write_gif()
+            if self.undistort:
+                img_fps = glob.glob(processed_rgb_dir, "*.bmp")
+                for img_fp in img_fps:
+                    img = cv2.imread(img_fp)
+                    cv2.imwrite(img_fp, self._undistorter.undistort(img))
+
+        assert not QUIT
+        self._write_nfo()
+        self._write_labels_file(prefixes2process)
+        self._write_make_file()
+        self._log("Writing nfo, labels and json files...")
+        self._log("OK")
