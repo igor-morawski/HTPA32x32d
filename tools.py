@@ -646,6 +646,7 @@ def debug_HTPA32x32d_txt(filepath: str, array_size=32):
 
 ### TPA only samples
 
+
 class _TPA_Sample():
     """
     Use TPA_Sample_from_filepaths or TPA_Sample_from_data that inherit from this class.
@@ -1151,29 +1152,38 @@ class _TPA_RGB_Sample():
     """
 
     def __init__(self, TPA, RGB):
-    #def __init__(self, filepaths, ids, arrays, timestamps, rgb_file_list, rgb_timestamps):
+        #def __init__(self, filepaths, ids, arrays, timestamps, rgb_file_list, rgb_timestamps):
         self.TPA = TPA
         self.RGB = RGB
-        self._TPA_RGB_timestsamps = self.TPA.timestamps + [self.RGB.timestamps]
+        self._update_TPA_RGB_timestamps()
+
+    def _update_TPA_RGB_timestamps(self):
+        self._TPA_RGB_timestamps = self.TPA.timestamps + [self.RGB.timestamps]
+
 
     def test_alignment(self):
-        lengths = [len(ts) for ts in self._TPA_RGB_timestsamps]
+        lengths = [len(ts) for ts in self._TPA_RGB_timestamps]
         return all(l == lengths[0] for l in lengths)
 
     def test_synchronization(self, max_error):
-        pairs = itertools.combinations(self._TPA_RGB_timestsamps, 2)
+        pairs = itertools.combinations(self._TPA_RGB_timestamps, 2)
         for pair in pairs:
             if (np.abs(np.array(pair[0]) - np.array(pair[1])).max() > max_error):
                 return False
         return True
 
+
 class RGB_Sample_from_filepaths():
     def __init__(self, rgb_directory):
-        globbed_rgb_dir = list(glob.glob(os.path.join(rgb_directory, "*-*[0-9].bmp")))
+        globbed_rgb_dir = list(
+            glob.glob(os.path.join(rgb_directory, "*-*[0-9].bmp")))
         if not globbed_rgb_dir:
             raise ValueError("Specified directory is empty or doesn't exist.")
-        unsorted_timestamps = [float(remove_extension(os.path.basename(fp)).replace("-", ".")) for fp in globbed_rgb_dir]
-        self.timestamps, self.filepaths = (list(t) for t in zip(*sorted(zip(unsorted_timestamps, globbed_rgb_dir))))
+        unsorted_timestamps = [float(remove_extension(
+            os.path.basename(fp)).replace("-", ".")) for fp in globbed_rgb_dir]
+        self.timestamps, self.filepaths = (list(t) for t in zip(
+            *sorted(zip(unsorted_timestamps, globbed_rgb_dir))))
+
 
 class TPA_RGB_Sample_from_filepaths(_TPA_RGB_Sample):
     """
@@ -1182,7 +1192,7 @@ class TPA_RGB_Sample_from_filepaths(_TPA_RGB_Sample):
 
     def __init__(self, tpa_filepaths, rgb_directory):
         TPA = TPA_Sample_from_filepaths(tpa_filepaths)
-        RGB  = RGB_Sample_from_filepaths(rgb_directory)
+        RGB = RGB_Sample_from_filepaths(rgb_directory)
         _TPA_RGB_Sample.__init__(self, TPA, RGB)
 
     def write(self):
@@ -1199,3 +1209,62 @@ class TPA_RGB_Sample_from_filepaths(_TPA_RGB_Sample):
         raise Exception(
             "Use TPA_RGB_Sample_from_data if you need to modify arrays.")
 
+
+class TPA_RGB_Sample_from_data(_TPA_RGB_Sample):
+    """
+    #TODO
+    TPA is from data
+    RGB is from filepaths
+    """
+
+    def __init__(self, tpa_arrays, tpa_timestamps, tpa_ids, rgb_directory, tpa_output_filepaths = None, rgb_output_directory = None):
+        TPA = TPA_Sample_from_data(tpa_arrays, tpa_timestamps, tpa_ids, tpa_output_filepaths)
+        RGB = RGB_Sample_from_filepaths(rgb_directory)
+        self.rgb_output_directory = rgb_output_directory
+        _TPA_RGB_Sample.__init__(self, TPA, RGB)
+
+    def write(self):
+        """
+        Write stored arrays to filepaths in self.TPA.filepaths
+        and RGB bitmaps to self.rgb_output_directory
+        """
+        assert self.test_alignment()
+        print([len(l) for l in self._TPA_RGB_timestamps])
+        assert self.TPA.filepaths 
+        assert self.rgb_output_directory
+        self.TPA.write()
+        ensure_path_exists(self.rgb_output_directory)
+        for src, timestamp in zip(self.RGB.filepaths, self.RGB.timestamps):
+            new_fn = "{:.2f}".format(timestamp).replace(".","-") + ".bmp"
+            dst = os.path.join(self.rgb_output_directory, new_fn)
+            shutil.copy2(src,dst)
+
+
+    def align_timesteps(self, reset_T0=False):
+        """
+        Align timesteps. Refer to match_timesteps() in this module for details.
+
+        Parameters
+        ----------
+        reset_T0 : bool, optional
+            If True delay of the inital frame will be removed from timestamps
+        """
+        indexes = match_timesteps(*self._TPA_RGB_timestamps)
+        #TPA
+        for i in range(len(self.TPA.ids)):
+            self.TPA.arrays[i] = self.TPA.arrays[i][indexes[i]]
+            timestamps = np.array(self.TPA.timestamps[i])[indexes[i]]
+            self.TPA.timestamps[i] = list(timestamps)
+        #RGB
+        i+=1
+        self.RGB.timestamps = list(np.array(self.RGB.timestamps)[indexes[i]])
+        self.RGB.filepaths = list(np.array(self.RGB.filepaths)[indexes[i]])
+        #update timestamps
+        self._update_TPA_RGB_timestamps()
+        if reset_T0:
+            sample_T0_min = np.min([ts[0] for ts in self._TPA_RGB_timestamps])
+            timestamps = [list(np.array(ts)-sample_T0_min) for ts in self._TPA_RGB_timestamps]
+            self.TPA.timestamps = timestamps[:-1]
+            self.RGB.timestamps = timestamps[-1]
+            self._update_TPA_RGB_timestamps()
+        return True

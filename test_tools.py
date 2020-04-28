@@ -34,9 +34,16 @@ def _init():
 
 
 def _cleanup(files_fp: list = None):
+    dirs = []
     if files_fp:
         for fp in files_fp:
-            os.remove(fp)
+            try:
+                os.remove(fp)
+            except IsADirectoryError:
+                dirs.append(fp)
+    if dirs:
+        for fp in dirs:
+            os.rmdir(fp)
     if os.path.exists(TMP_PATH):
         os.rmdir(TMP_PATH)
 
@@ -838,6 +845,7 @@ class RGB_Sample_from_filepaths(unittest.TestCase):
         self.assertEqual(expected_timestamps, sample.timestamps)
         self.assertEqual(expected_filepaths, sample.filepaths)
 
+
 class Test_class_TPA_RGB_Sample(unittest.TestCase):
     def test_init(self):
         rgb_dir = os.path.join("testing", "20200415_1438_IDRGB")
@@ -845,9 +853,9 @@ class Test_class_TPA_RGB_Sample(unittest.TestCase):
         self.assertTrue(sample.TPA)
         self.assertTrue(sample.RGB)
         expected_rgb_timestamps = [1.52, 1.63, 1.75, 1.86, 1.99,
-                               2.11, 2.22, 2.35, 2.46, 2.58, 2.69, 2.85, 2.97, 3.1]
+                                   2.11, 2.22, 2.35, 2.46, 2.58, 2.69, 2.85, 2.97, 3.1]
         expected_rgb_filepaths = ['testing/20200415_1438_IDRGB/1-52.bmp', 'testing/20200415_1438_IDRGB/1-63.bmp', 'testing/20200415_1438_IDRGB/1-75.bmp', 'testing/20200415_1438_IDRGB/1-86.bmp', 'testing/20200415_1438_IDRGB/1-99.bmp', 'testing/20200415_1438_IDRGB/2-11.bmp', 'testing/20200415_1438_IDRGB/2-22.bmp',
-                              'testing/20200415_1438_IDRGB/2-35.bmp', 'testing/20200415_1438_IDRGB/2-46.bmp', 'testing/20200415_1438_IDRGB/2-58.bmp', 'testing/20200415_1438_IDRGB/2-69.bmp', 'testing/20200415_1438_IDRGB/2-85.bmp', 'testing/20200415_1438_IDRGB/2-97.bmp', 'testing/20200415_1438_IDRGB/3-10.bmp']
+                                  'testing/20200415_1438_IDRGB/2-35.bmp', 'testing/20200415_1438_IDRGB/2-46.bmp', 'testing/20200415_1438_IDRGB/2-58.bmp', 'testing/20200415_1438_IDRGB/2-69.bmp', 'testing/20200415_1438_IDRGB/2-85.bmp', 'testing/20200415_1438_IDRGB/2-97.bmp', 'testing/20200415_1438_IDRGB/3-10.bmp']
         self.assertEqual(expected_rgb_timestamps, sample.RGB.timestamps)
         self.assertEqual(expected_rgb_filepaths, sample.RGB.filepaths)
         expected_samples = [tools.read_tpa_file(fp) for fp in MV_SAMPLE]
@@ -873,9 +881,166 @@ class Test_class_TPA_RGB_Sample(unittest.TestCase):
         sample = tools.TPA_RGB_Sample_from_filepaths(MV_SAMPLE, rgb_dir)
         sample.RGB.timestamps.append(6.7)
         self.assertFalse(sample.test_alignment())
-    
+
     def test_test_synchronization(self):
         rgb_dir = os.path.join("testing", "20200415_1438_IDRGB")
         sample = tools.TPA_RGB_Sample_from_filepaths(MV_SAMPLE, rgb_dir)
         self.assertTrue(sample.test_synchronization(max_error=0.5))
         self.assertFalse(sample.test_synchronization(max_error=-1))
+
+
+class Test_TPA_RGB_Sample_from_data(unittest.TestCase):
+    def test_default_init(self):
+        rgb_dir = os.path.join("testing", "20200415_1438_IDRGB")
+        array0, ts0 = tools.txt2np(MV_SAMPLE[0])
+        array1, ts1 = tools.txt2np(MV_SAMPLE[1])
+        array2, ts2 = tools.txt2np(MV_SAMPLE[2])
+        arrays = [array0, array1, array2]
+        timestamps = [ts0, ts1, ts2]
+        ids = ["121", "122", "123"]
+        tools.TPA_RGB_Sample_from_data(arrays, timestamps, ids, rgb_dir)
+
+    def test_test_synchronization(self):
+        rgb_dir = os.path.join("testing", "20200415_1438_IDRGB")
+        s = tools.TPA_Sample_from_filepaths(MV_SAMPLE)
+        arrays, timestamps, ids = s.arrays, s.timestamps, s.ids
+        sample = tools.TPA_RGB_Sample_from_data(
+            arrays, timestamps, ids, rgb_dir)
+        max_error = 0
+        self.assertTrue(sample.test_synchronization(max_error=0.5))
+        self.assertFalse(sample.test_synchronization(max_error=-1))
+
+    def test_test_alignment(self):
+        rgb_dir = os.path.join("testing", "20200415_1438_IDRGB")
+        s_m = tools.TPA_Sample_from_filepaths(MV_SAMPLE_MESSED)
+        arrays, timestamps, ids = s_m.arrays, s_m.timestamps, s_m.ids
+        sample_messed = tools.TPA_RGB_Sample_from_data(
+            arrays, timestamps, ids, rgb_dir)
+        self.assertFalse(sample_messed.test_alignment())
+        s = tools.TPA_Sample_from_filepaths(MV_SAMPLE)
+        arrays, timestamps, ids = s.arrays, s.timestamps, s.ids
+        sample = tools.TPA_RGB_Sample_from_data(
+            arrays, timestamps, ids, rgb_dir)
+        self.assertTrue(sample.test_alignment())
+
+    def test_align_timesteps(self):
+        rgb_dir = os.path.join("testing", "20200415_1438_IDRGB")
+        s = tools.TPA_Sample_from_filepaths(MV_SAMPLE_MESSED)
+        a, t, i = s.arrays, s.timestamps, s.ids
+        sample = tools.TPA_RGB_Sample_from_data(a, t, i, rgb_dir)
+        # align now
+        sample.align_timesteps()
+        processed_a, processed_t, processed_i = sample.TPA.arrays, sample.TPA.timestamps, sample.TPA.ids
+        # test
+        lengths = [len(ts) for ts in t]
+        self.assertFalse(all(l == lengths[0] for l in lengths))
+        lengths = [len(array) for array in a]
+        self.assertFalse(all(l == lengths[0] for l in lengths))
+        lengths = [len(ts) for ts in processed_t]
+        self.assertTrue(all(l == lengths[0] for l in lengths))
+        lengths = [len(array) for array in processed_a]
+        self.assertTrue(all(l == lengths[0] for l in lengths))
+        self.assertNotEqual(t[0][9], 2.85)
+        self.assertNotEqual(t[1][9], 2.77)
+        self.assertEqual(t[2][9], 2.80)
+        self.assertEqual(processed_t[0][9], 2.85)
+        self.assertEqual(processed_t[1][9], 2.77)
+        self.assertTrue(np.array_equal(a[0][0], processed_a[0][0]))
+        self.assertTrue(np.array_equal(a[1][0], processed_a[1][0]))
+        self.assertTrue(np.array_equal(a[2][0], processed_a[2][0]))
+        self.assertTrue(np.array_equal(a[0][1], processed_a[0][1]))
+        self.assertTrue(np.array_equal(a[1][1], processed_a[1][1]))
+        self.assertTrue(np.array_equal(a[2][1], processed_a[2][1]))
+        self.assertFalse(np.array_equal(a[0][-1], processed_a[0][-1]))
+        self.assertFalse(np.array_equal(a[1][-1], processed_a[1][-1]))
+        self.assertTrue(np.array_equal(a[0][11], processed_a[0][-1]))
+        self.assertTrue(np.array_equal(a[1][11], processed_a[1][-1]))
+        self.assertTrue(np.array_equal(a[2][-1], processed_a[2][-1]))
+        expected_rgb_timestamps = [1.52, 1.63, 1.75,
+                                   1.99, 1.99, 2.22, 2.35, 2.46, 2.58, 2.85]
+        self.assertEqual(sample.RGB.timestamps, expected_rgb_timestamps)
+        random_rgb_timestamps = [1.56, 1.61, 1.75,
+                                 1.99, 1.99, 2.22, 2.35, 2.46, 2.58, 2.85]
+        self.assertNotEqual(sample.RGB.timestamps, random_rgb_timestamps)
+        self.assertEqual(len(sample.RGB.timestamps), len(sample.RGB.filepaths))
+        expected_rgb_filepaths = ['testing/20200415_1438_IDRGB/1-52.bmp', 'testing/20200415_1438_IDRGB/1-63.bmp', 'testing/20200415_1438_IDRGB/1-75.bmp', 'testing/20200415_1438_IDRGB/1-99.bmp', 'testing/20200415_1438_IDRGB/1-99.bmp', 'testing/20200415_1438_IDRGB/2-22.bmp', 
+                                  'testing/20200415_1438_IDRGB/2-35.bmp', 'testing/20200415_1438_IDRGB/2-46.bmp', 'testing/20200415_1438_IDRGB/2-58.bmp', 'testing/20200415_1438_IDRGB/2-85.bmp']
+        self.assertEqual(expected_rgb_filepaths, sample.RGB.filepaths)
+
+    def test_reset_T0_align_timesteps(self):
+        rgb_dir = os.path.join("testing", "20200415_1438_IDRGB")
+        s = tools.TPA_Sample_from_filepaths(MV_SAMPLE_MESSED)
+        a, t, i = s.arrays, s.timestamps, s.ids
+        sample = tools.TPA_RGB_Sample_from_data(a, t, i, rgb_dir)
+        # align now
+        sample.align_timesteps(reset_T0=True)
+        processed_a, processed_t, processed_i = sample.TPA.arrays, sample.TPA.timestamps, sample.TPA.ids
+        # test
+        lengths = [len(ts) for ts in t]
+        self.assertFalse(all(l == lengths[0] for l in lengths))
+        lengths = [len(array) for array in a]
+        self.assertFalse(all(l == lengths[0] for l in lengths))
+        lengths = [len(ts) for ts in processed_t]
+        self.assertTrue(all(l == lengths[0] for l in lengths))
+        lengths = [len(array) for array in processed_a]
+        self.assertTrue(all(l == lengths[0] for l in lengths))
+        self.assertNotEqual(t[0][9], 2.85)
+        self.assertNotEqual(t[1][9], 2.77)
+        self.assertEqual(t[2][9], 2.80)
+        np.testing.assert_almost_equal(processed_t[0][0], 0.02, 5)
+        self.assertEqual(processed_t[1][0], 0)
+        np.testing.assert_almost_equal(processed_t[2][0], 0.05, 5)
+        expected_rgb_timestamps = [1.52, 1.63, 1.75,
+                                   1.99, 1.99, 2.22, 2.35, 2.46, 2.58, 2.85]
+        expected_rgb_timestamps = [t-1.50 for t in expected_rgb_timestamps]
+        self.assertEqual(sample.RGB.timestamps, expected_rgb_timestamps)
+        expected_rgb_filepaths = ['testing/20200415_1438_IDRGB/1-52.bmp', 'testing/20200415_1438_IDRGB/1-63.bmp', 'testing/20200415_1438_IDRGB/1-75.bmp', 'testing/20200415_1438_IDRGB/1-99.bmp', 'testing/20200415_1438_IDRGB/1-99.bmp', 'testing/20200415_1438_IDRGB/2-22.bmp', 
+                                  'testing/20200415_1438_IDRGB/2-35.bmp', 'testing/20200415_1438_IDRGB/2-46.bmp', 'testing/20200415_1438_IDRGB/2-58.bmp', 'testing/20200415_1438_IDRGB/2-85.bmp']
+        self.assertEqual(expected_rgb_filepaths, sample.RGB.filepaths)
+
+    def test_write(self):
+        rgb_dir = os.path.join("testing", "20200415_1438_IDRGB")
+        s = tools.TPA_Sample_from_filepaths(MV_SAMPLE)
+        a, t, i = s.arrays, s.timestamps, s.ids
+        expected_tpa_fps = [os.path.join(
+            TMP_PATH, "prefix_ID"+id+".txt") for id in i]
+        rgb_output_directory = os.path.join(TMP_PATH, "20200415_1438_IDRGB")
+        sample = tools.TPA_RGB_Sample_from_data(a, t, i, rgb_dir, tpa_output_filepaths=expected_tpa_fps, rgb_output_directory=rgb_output_directory)
+        self.assertTrue(sample.TPA.filepaths, expected_tpa_fps)
+        self.assertTrue(sample.rgb_output_directory, rgb_output_directory)
+        sample.write()
+        expected_rgb_filepaths = ['20200415_1438_IDRGB/1-52.bmp', '20200415_1438_IDRGB/1-63.bmp', '20200415_1438_IDRGB/1-75.bmp', '20200415_1438_IDRGB/1-86.bmp', '20200415_1438_IDRGB/1-99.bmp', '20200415_1438_IDRGB/2-11.bmp', '20200415_1438_IDRGB/2-22.bmp',
+                                  '20200415_1438_IDRGB/2-35.bmp', '20200415_1438_IDRGB/2-46.bmp', '20200415_1438_IDRGB/2-58.bmp', '20200415_1438_IDRGB/2-69.bmp', '20200415_1438_IDRGB/2-85.bmp', '20200415_1438_IDRGB/2-97.bmp', '20200415_1438_IDRGB/3-10.bmp']
+        expected_rgb_filepaths = [os.path.join(TMP_PATH, fp) for fp in expected_rgb_filepaths]
+        s_o = tools.TPA_Sample_from_filepaths(sample.TPA.filepaths)
+        [self.assertTrue(np.array_equal(result, expected))
+         for result, expected in zip(s_o.arrays, s.arrays)]
+        [self.assertTrue(np.array_equal(result, expected))
+         for result, expected in zip(s_o.timestamps, s.timestamps)]
+        _cleanup(set(expected_rgb_filepaths + expected_tpa_fps + [os.path.join(TMP_PATH, '20200415_1438_IDRGB')]))
+
+    def test_align_and_write(self):
+        rgb_dir = os.path.join("testing", "20200415_1438_IDRGB")
+        s = tools.TPA_Sample_from_filepaths(MV_SAMPLE_MESSED)
+        a, t, i = s.arrays, s.timestamps, s.ids
+        expected_tpa_fps = [os.path.join(
+            TMP_PATH, "prefix_ID"+id+".txt") for id in i]
+        rgb_output_directory = os.path.join(TMP_PATH, "20200415_1438_IDRGB")
+        sample = tools.TPA_RGB_Sample_from_data(a, t, i, rgb_dir, tpa_output_filepaths=expected_tpa_fps, rgb_output_directory=rgb_output_directory)
+        self.assertTrue(sample.TPA.filepaths, expected_tpa_fps)
+        self.assertTrue(sample.rgb_output_directory, rgb_output_directory)
+        sample.align_timesteps()
+        sample.write()
+        expected_rgb_filepaths = ['20200415_1438_IDRGB/1-52.bmp', '20200415_1438_IDRGB/1-63.bmp', '20200415_1438_IDRGB/1-75.bmp', '20200415_1438_IDRGB/1-99.bmp', '20200415_1438_IDRGB/1-99.bmp', '20200415_1438_IDRGB/2-22.bmp', 
+                                  '20200415_1438_IDRGB/2-35.bmp', '20200415_1438_IDRGB/2-46.bmp', '20200415_1438_IDRGB/2-58.bmp', '20200415_1438_IDRGB/2-85.bmp']
+        expected_rgb_filepaths = [os.path.join(TMP_PATH, fp) for fp in expected_rgb_filepaths]
+        s_o = tools.TPA_Sample_from_filepaths(sample.TPA.filepaths)
+        s_o = tools.TPA_Sample_from_data(s_o.arrays, s_o.timestamps, s_o.ids)
+        s = tools.TPA_Sample_from_filepaths(MV_SAMPLE_MESSED)
+        s = tools.TPA_Sample_from_data(s.arrays, s.timestamps, s.ids)
+        s.align_timesteps()
+        [self.assertTrue(np.array_equal(result, expected))
+         for result, expected in zip(s_o.arrays, s.arrays)]
+        [self.assertTrue(np.array_equal(result, expected))
+         for result, expected in zip(s_o.timestamps, s.timestamps)]
+        _cleanup(set(expected_rgb_filepaths + expected_tpa_fps + [os.path.join(TMP_PATH, '20200415_1438_IDRGB')]))
