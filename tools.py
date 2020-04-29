@@ -1277,7 +1277,7 @@ class _TPA_RGB_Sample():
 class RGB_Sample_from_filepaths():
     def __init__(self, rgb_directory):
         globbed_rgb_dir = list(
-            glob.glob(os.path.join(rgb_directory, "*-*[0-9].bmp")))
+            glob.glob(os.path.join(rgb_directory, "*-*[0-9]." + HTPA_UDP_MODULE_WEBCAM_IMG_EXT)))
         if not globbed_rgb_dir:
             raise ValueError("Specified directory {} is empty or doesn't exist.".format(rgb_directory))
         unsorted_timestamps = [float(remove_extension(
@@ -1335,7 +1335,7 @@ class TPA_RGB_Sample_from_data(_TPA_RGB_Sample):
         self.TPA.write()
         ensure_path_exists(self.rgb_output_directory)
         for src, timestamp in zip(self.RGB.filepaths, self.RGB.timestamps):
-            new_fn = "{:.2f}".format(timestamp).replace(".","-") + ".bmp"
+            new_fn = "{:.2f}".format(timestamp).replace(".","-") + "." + HTPA_UDP_MODULE_WEBCAM_IMG_EXT
             dst = os.path.join(self.rgb_output_directory, new_fn)
             shutil.copy2(src,dst)
 
@@ -1534,7 +1534,7 @@ class TPA_RGB_Preparer(_Preparer):
             if self.visualize:
                 processed_sample.write_gif()
             if self.undistort:
-                img_fps = glob.glob(processed_rgb_dir, "*.bmp")
+                img_fps = glob.glob(processed_rgb_dir, "*." + HTPA_UDP_MODULE_WEBCAM_IMG_EXT)
                 for img_fp in img_fps:
                     img = cv2.imread(img_fp)
                     cv2.imwrite(img_fp, self._undistorter.undistort(img))
