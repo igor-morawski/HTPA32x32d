@@ -999,7 +999,7 @@ class _Preparer(_TPA_File_Manager):
         except KeyError:
             self.undistort = False
         try:
-            self.calib_fp = bool(self._json['calib_fp'])
+            self.calib_fp = self._json['calib_fp']
         except KeyError:
             self.calib_fp = None
         self.configured = True
