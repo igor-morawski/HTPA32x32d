@@ -1539,7 +1539,7 @@ class TPA_RGB_Preparer(_Preparer):
         QUIT = False
         if self.undistort:
             mtx, dist, width, height, _ = _unpack_calib_pkl(self.calib_fp)
-            self._undistorter = _Undistorter()
+            self._undistorter = _Undistorter(mtx, dist, width, height)
 
         for prefix in prefixes2process:
             raw_fp_prefix = os.path.join(self.raw_input_dir, prefix)
@@ -1566,8 +1566,7 @@ class TPA_RGB_Preparer(_Preparer):
             if self.visualize:
                 processed_sample.write_gif()
             if self.undistort:
-                img_fps = glob.glob(processed_rgb_dir,
-                                    "*." + HTPA_UDP_MODULE_WEBCAM_IMG_EXT)
+                img_fps = glob.glob(os.path.join(processed_rgb_dir, "*." + HTPA_UDP_MODULE_WEBCAM_IMG_EXT))
                 for img_fp in img_fps:
                     img = cv2.imread(img_fp)
                     cv2.imwrite(img_fp, self._undistorter.undistort(img))
