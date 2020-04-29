@@ -103,7 +103,7 @@ def read_tpa_file(filepath: str, array_size: int = 32):
         return pickle2np(filepath)
 
 
-def write_tpa_file(filepath: str, array, timestamps: list, header = None) -> bool:
+def write_tpa_file(filepath: str, array, timestamps: list, header=None) -> bool:
     """
     Convert and save Heimann HTPA NumPy array shaped [frames, height, width] to a txt file.
     Currently supported: see SUPPORTED_EXTENSIONS flag
@@ -811,7 +811,7 @@ class TPA_Sample_from_filepaths(_TPA_Sample):
         """
         raise Exception(
             "Use TPA_Sample_from_data if you need to modify arrays.")
-    
+
     def get_header(self):
         return read_txt_header(self.filepaths[0])
 
@@ -1553,9 +1553,9 @@ class TPA_RGB_Preparer(_Preparer):
             processed_rgb_dir = os.path.join(
                 self.processed_destination_dir, prefix + "ID" + "RGB")
             raw_sample = TPA_RGB_Sample_from_filepaths(tpa_fps, rgb_dir)
-            # XXX Copy header!!!
+            header = raw_sample.get_header()
             processed_sample = TPA_RGB_Sample_from_data(raw_sample.TPA.arrays, raw_sample.TPA.timestamps, raw_sample.TPA.ids,
-                                                        rgb_dir, tpa_output_filepaths=processed_fps, rgb_output_directory=processed_rgb_dir)
+                                                        rgb_dir, tpa_output_filepaths=processed_fps, rgb_output_directory=processed_rgb_dir, header=header)
             processed_sample.align_timesteps(reset_T0=True)
             if not processed_sample.test_synchronization(max_error=SYNCHRONIZATION_MAX_ERROR):
                 QUIT = True
@@ -1571,7 +1571,6 @@ class TPA_RGB_Preparer(_Preparer):
                 for img_fp in img_fps:
                     img = cv2.imread(img_fp)
                     cv2.imwrite(img_fp, self._undistorter.undistort(img))
-
         assert not QUIT
         self._write_nfo()
         self._write_labels_file(prefixes2process)

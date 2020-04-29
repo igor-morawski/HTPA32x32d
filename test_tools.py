@@ -1170,6 +1170,12 @@ class Test_class_TPA_RGB_Preparer(unittest.TestCase):
         fns5 = ["20200415_1438_IDRGB", "NO_LABELS_IDRGB"]
         fns = fns1 + fns2 + fns3 + fns4 + fns5
         expected_fps = [os.path.join(dest, f) for f in fns]
+        self.assertEqual(tools.read_txt_header(expected_fps[0]), "test1")
+        self.assertEqual(tools.read_txt_header(expected_fps[1]), "test1")
+        self.assertEqual(tools.read_txt_header(expected_fps[2]), "test1")
+        self.assertEqual(tools.read_txt_header(expected_fps[3]), "HTPA32x32d")
+        self.assertEqual(tools.read_txt_header(expected_fps[4]), "HTPA32x32d")
+        self.assertEqual(tools.read_txt_header(expected_fps[5]), "HTPA32x32d")
         self.assertEqual(
             set(glob.glob(os.path.join(dest, "*"))), set(expected_fps))
         with open(os.path.join(dest, fns4[0])) as f:
