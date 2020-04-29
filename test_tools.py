@@ -6,6 +6,7 @@ import cv2
 import json
 import glob
 import pickle
+import shutil
 
 import tools
 tools.VERBOSE = True
@@ -1104,3 +1105,57 @@ class Test_class_Undistorter(unittest.TestCase):
         self.assertFalse(np.array_equal(img, result))
         # not actually checking undistorted result
         
+
+
+class Test_class_TPA_RGB_Preparer(unittest.TestCase):
+    def test_generate_config_template(self):
+        gen = tools.TPA_RGB_Preparer()
+        _init()
+        out_fp = os.path.join(TMP_PATH, "template.json")
+        gen.generate_config_template(out_fp)
+        self.assertTrue(os.path.exists(out_fp))
+        _cleanup([out_fp])
+
+    def test_init_config(self):
+        tpa_rgb_preparer = tools.TPA_RGB_Preparer()
+        self.assertFalse(tpa_rgb_preparer.configured)
+        tpa_rgb_preparer.config(TPA_PP_CONFIG)
+        self.assertTrue(tpa_rgb_preparer.configured)
+        tpa_rgb_preparer_messed = tools.TPA_RGB_Preparer()
+        with self.assertRaises(Exception) as context:
+            tpa_rgb_preparer_messed.config(TPA_DS_CONFIG_MESSED)
+        self.assertFalse(tpa_rgb_preparer_messed.configured)
+
+    def test_prepare(self):
+        with open(TPA_PP_CONFIG) as f:
+            cnfg = json.load(f)
+        dest = cnfg["processed_destination_dir"]
+        tpa_rgb_preparer = tools.TPA_RGB_Preparer()
+        self.assertFalse(tpa_rgb_preparer.configured)
+        tpa_rgb_preparer.config(TPA_PP_CONFIG)
+        tpa_rgb_preparer.prepare()
+        fns1 = ["20200415_1438_ID121.TXT",
+                "20200415_1438_ID122.TXT", "20200415_1438_ID123.TXT"]
+        fns2 = ["NO_LABELS_ID121.TXT",
+                "NO_LABELS_ID122.TXT", "NO_LABELS_ID123.TXT"]
+        fns3 = []
+        fns4 = ["tpa.nfo", "labels.json", "make_config.json"]
+        fns5 = ["20200415_1438_IDRGB", "NO_LABELS_IDRGB"]
+        fns = fns1 + fns2 + fns3 + fns4 + fns5
+        expected_fps = [os.path.join(dest, f) for f in fns]
+        self.assertEqual(
+            set(glob.glob(os.path.join(dest, "*"))), set(expected_fps))
+        with open(os.path.join(dest, fns4[0])) as f:
+            data = json.load(f)
+        key = tools.PROCESSED_OK_KEY
+        self.assertTrue(data[key])
+        with open(os.path.join(dest, fns4[1])) as f:
+            data = json.load(f)
+        prefixes = ["20200415_1438_", "NO_LABELS_"]
+        [self.assertTrue(key in data) for key in prefixes]
+        [shutil.rmtree(os.path.join(dest, dir))  for dir in fns5]
+        fns = fns1 + fns2 + fns3 + fns4
+        expected_fps = [os.path.join(dest, f) for f in fns]
+        _cleanup(expected_fps)
+        if os.path.exists(dest):
+            os.rmdir(dest)

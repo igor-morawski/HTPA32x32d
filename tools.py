@@ -843,9 +843,9 @@ class _TPA_File_Manager():
     TPA_Preparer and TPA_Dataset_Maker inherit from this class.
     """
 
-    def __init__(self):
+    def __init__(self, reset_log = True):
         self.configured = False
-        if VERBOSE:
+        if (VERBOSE and reset_log):
             self._make_log = "make.log"
             if os.path.exists(self._make_log):
                 os.remove(self._make_log)
@@ -893,17 +893,19 @@ class _TPA_File_Manager():
         # filter out samples that miss views
         counter = collections.Counter(prefixes)
         view_number = len(self.view_IDs)
+        prefixes2filter_copy = prefixes2filter.copy()
         for prefix in counter.keys():
             prefix_view_number = counter[prefix]
             if (prefix_view_number < view_number):
-                prefixes2filter.remove(prefix)
+                prefixes2filter_copy.remove(prefix)
                 self._log('[WARNING] Ignoring prefix {} because it misses {} views'.format(
                     prefix, view_number-prefix_view_number))
+        prefixes2filter = prefixes2filter_copy.copy()
         return prefixes2filter
 
 class _Preparer(_TPA_File_Manager):
-    def __init__(self):
-        _TPA_File_Manager.__init__(self)
+    def __init__(self, reset_log = True):
+        _TPA_File_Manager.__init__(self, reset_log)
         self._json_required_keys = ["raw_input_dir", "processed_destination_dir", "view_IDs",
                                     "tpas_extension", "MAKE", "PREPARE"]
 
@@ -950,7 +952,7 @@ class _Preparer(_TPA_File_Manager):
     def _write_make_file(self):
         filepath = os.path.join(
             self.processed_destination_dir, "make_config.json")
-        dataset_maker = TPA_Dataset_Maker()
+        dataset_maker = TPA_Dataset_Maker(reset_log = False)
         fill_dict = {}
         fill_dict.update({"view_IDs": self.view_IDs})
         fill_dict.update({"tpas_extension": self.tpas_extension})
@@ -1064,8 +1066,8 @@ class TPA_Dataset_Maker(_TPA_File_Manager):
     #TODO CALL A TPA_Preparer FIRST ; #TODO FINISH DOCS
     '''
 
-    def __init__(self):
-        _TPA_File_Manager.__init__(self)
+    def __init__(self, reset_log = True):
+        _TPA_File_Manager.__init__(self, reset_log)
         self._json_required_keys = ["dataset_destination_dir", "view_IDs",
                                     "processed_input_dir", "labels_filepath", "tpas_extension", "MAKE", "PREPARE"]
 
@@ -1118,21 +1120,25 @@ class TPA_Dataset_Maker(_TPA_File_Manager):
         prefixes2make = self._remove_missing_views(prefixes, prefixes2make)
         # filter out samples that miss a label
         self._labels = self._read_labels_file(self.labels_filepath)
+        prefixes2make_copy = prefixes2make.copy()
         for prefix in prefixes2make:
             if (prefix not in self._labels):
-                prefixes2make.remove(prefix)
+                prefixes2make_copy.remove(prefix)
                 self._log('[WARNING] Ignoring prefix {} because it misses a label'.format(
                     prefix))
+        prefixes2make = prefixes2make_copy.copy()
         for prefix in prefixes2make:
             if not self._labels[prefix]:
-                prefixes2make.remove(prefix)
+                prefixes2make_copy.remove(prefix)
                 self._log('[WARNING] Ignoring prefix {} because it misses a label'.format(
                     prefix))
+        prefixes2make = prefixes2make_copy.copy()
         for prefix in prefixes2make:
             if not (type(self._labels[prefix]) == int):
-                prefixes2make.remove(prefix)
+                prefixes2make_copy.remove(prefix)
                 self._log('[WARNING] Ignoring prefix {} because the label is incorrect (it is not an integer)'.format(
                     prefix))
+        prefixes2make = prefixes2make_copy.copy()
         # process the files
         fps2copy = []
         fps2output = []
@@ -1223,7 +1229,7 @@ class RGB_Sample_from_filepaths():
         globbed_rgb_dir = list(
             glob.glob(os.path.join(rgb_directory, "*-*[0-9].bmp")))
         if not globbed_rgb_dir:
-            raise ValueError("Specified directory is empty or doesn't exist.")
+            raise ValueError("Specified directory {} is empty or doesn't exist.".format(rgb_directory))
         unsorted_timestamps = [float(remove_extension(
             os.path.basename(fp)).replace("-", ".")) for fp in globbed_rgb_dir]
         self.timestamps, self.filepaths = (list(t) for t in zip(
@@ -1400,8 +1406,8 @@ class TPA_RGB_Preparer(_Preparer):
     
     """
 
-    def __init__(self):
-        _Preparer.__init__(self)
+    def __init__(self, reset_log = True):
+        _Preparer.__init__(self, reset_log)
 
     def config(self, json_filepath):
         self._config(json_filepath)
@@ -1438,11 +1444,13 @@ class TPA_RGB_Preparer(_Preparer):
         # filter out samples that miss views
         prefixes2process = self._remove_missing_views(
             prefixes, prefixes2process)
-        rgb_dirs_prefixes = set([_TPA_get_file_prefix(dir) for dir in glob.glob(self.raw_input_dir, "*IDRGB")])
+        rgb_dirs_prefixes = set([_TPA_get_file_prefix(dir) for dir in glob.glob(os.path.join(self.raw_input_dir, "*IDRGB"))])
+        prefixes2process_copy = prefixes2process.copy()
         for prefix in prefixes2process:
-            if prefix not in glob.glob("testing/testing_TPA_source/*RGB"):
-                prefixes2process.remove(prefix)
+            if prefix not in rgb_dirs_prefixes:
+                prefixes2process_copy.remove(prefix)
                 self._log('[WARNING] Ignoring prefix {} because it misses RGB view'.format(prefix))
+        prefixes2process = prefixes2process_copy.copy()
         prefixes2process_number = len(set(prefixes2process))
         prefixes_ignored = prefixes2process_number0 - prefixes2process_number
         self._log("[INFO] {} prefixes ignored out of initial {}".format(
@@ -1462,8 +1470,8 @@ class TPA_RGB_Preparer(_Preparer):
                        self.tpas_extension for view_id in self.view_IDs]
             processed_fps = [processed_fp_prefix + "ID" + view_id +
                              "." + self.tpas_extension for view_id in self.view_IDs]
-            rgb_dir = os.path.join(self.raw_input_dir, prefix + "RGB")
-            processed_rgb_dir = os.path.join(self.processed_destination_dir, prefix + "RGB")
+            rgb_dir = os.path.join(self.raw_input_dir, prefix + "ID" + "RGB")
+            processed_rgb_dir = os.path.join(self.processed_destination_dir, prefix + "ID" + "RGB")
             raw_sample = TPA_RGB_Sample_from_filepaths(tpa_fps, rgb_dir)
             processed_sample = TPA_RGB_Sample_from_data(raw_sample.TPA.arrays, raw_sample.TPA.timestamps, raw_sample.TPA.ids,
                                                         rgb_dir, tpa_output_filepaths=processed_fps, rgb_output_directory=processed_rgb_dir)
