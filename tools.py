@@ -535,6 +535,55 @@ def match_timesteps(*timestamps_lists):
     return indices_list
 
 
+
+def match_timesteps2(*timestamps_lists):
+    #XXX Not finished
+    """
+    Aligns timesteps of given timestamps. 
+
+
+    Parameters
+    ---------
+    *timestamps_list : list, np.array
+        lists-like data containing timestamps 
+    Returns
+    -------
+    list
+        list of indices of timesteps corresponding to input lists so that input lists are aligned
+    
+    Example:
+        ts1 = [1, 2, 3, 4, 5]
+        ts2 = [1.1, 2.1, 2.9, 3.6, 5.1, 6, 6.1]
+        ts3 = [0.9, 1.2, 2, 3, 4.1, 4.2, 4.3, 4.9]
+        idx1, idx2, idx3 = match_timesteps(ts1, ts2, ts3)
+    now ts1[idx1], ts2[idx2] and ts3[idx3] will be aligned
+    """
+    ts_list = [np.array(ts).reshape(-1, 1) for ts in timestamps_lists]
+    #min_len_idx = np.array([len(ts) for ts in ts_list]).argmin()
+    #min_len_ts = ts_list[min_len_idx]
+    max_error_list = [0] * len(ts_list)
+    for idx, ts in enumerate(ts_list): 
+        for idx2, ts2 in enumerate(ts_list):
+            if (idx == idx2):
+                continue
+            tmp_indexes = list(cdist(ts, ts2).argmin(axis=-1))
+            diff = ts - ts2[tmp_indexes]
+            max_error = np.abs(np.max(diff))
+            current_max = max_error_list[idx]
+            if (max_error > current_max):
+                max_error_list[idx] = max_error
+    min_error_idx = np.argmin(max_error_list)
+    indices_list = [None] * len(ts_list)
+    min_error_ts = ts_list[min_error_idx]
+    for idx, ts in enumerate(ts_list):
+        if (idx == min_error_idx):
+            indices_list[idx] = list(range(len(min_error_ts)))
+        else:
+            indices_list[idx] = list(cdist(min_error_ts, ts).argmin(axis=-1))  
+    return indices_list
+
+
+
 def resample_np_tuples(arrays, indices=None, step=None):
     """
     Resampling for 3D arrays.
