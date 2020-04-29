@@ -27,7 +27,7 @@ import glob
 import collections
 import shutil
 import pickle
-
+import re
 
 VERBOSE = False
 
@@ -959,9 +959,9 @@ class _TPA_File_Manager():
         prefixes2filter = prefixes2filter_copy.copy()
         return prefixes2filter
 
-    def _remove_missing_rgbs(self, prefixes2process: list):
+    def _remove_missing_rgbs(self, prefixes2process: list, scanned_dir : str):
         rgb_dirs_prefixes = set([_TPA_get_file_prefix(dir) for dir in glob.glob(
-            os.path.join(self.raw_input_dir, "*IDRGB"))])
+            os.path.join(scanned_dir, "*IDRGB"))])
         prefixes2process_copy = prefixes2process.copy()
         for prefix in prefixes2process:
             if prefix not in rgb_dirs_prefixes:
@@ -1529,7 +1529,7 @@ class TPA_RGB_Preparer(_Preparer):
         # filter out samples that miss views
         prefixes2process = self._remove_missing_views(
             prefixes, prefixes2process)
-        prefixes2process = self._remove_missing_rgbs(prefixes2process)
+        prefixes2process = self._remove_missing_rgbs(prefixes2process, self.raw_input_dir)
         prefixes2process_number = len(set(prefixes2process))
         prefixes_ignored = prefixes2process_number0 - prefixes2process_number
         self._log("[INFO] {} prefixes ignored out of initial {}".format(
@@ -1617,7 +1617,7 @@ class TPA_RGB_Dataset_Maker(_Dataset_Maker):
         prefixes2make_number0 = len(prefixes2make)
         # filter out samples that miss views or RGBs
         prefixes2make = self._remove_missing_views(prefixes, prefixes2make)
-        prefixes2make = self._remove_missing_rgbs(prefixes2make)
+        prefixes2make = self._remove_missing_rgbs(prefixes2make, self.processed_input_dir)
         # filter out samples that miss a label
         self._labels = self._read_labels_file(self.labels_filepath)
         prefixes2make_copy = prefixes2make.copy()
@@ -1645,11 +1645,12 @@ class TPA_RGB_Dataset_Maker(_Dataset_Maker):
         dirs2copy = []
         dirs2output = []
         for prefix in prefixes2make:
-            #XXX Add header dir
             subject_name = _get_subject_from_header(read_txt_header(os.path.join(
-                self.processed_input_dir, prefix + "ID" + self.view_id[0] + "." + self.tpas_extension)))
+                self.processed_input_dir, prefix + "ID" + self.view_IDs[0] + "." + self.tpas_extension)))
+            subject_name=re.sub('[^\w\-_\. ]', '_',subject_name)
             fp_prefix = os.path.join(self.processed_input_dir, prefix)
-            fp_o_prefix = os.path.join(self.dataset_destination_dir, prefix)
+            fp_o_prefix = os.path.join(self.dataset_destination_dir, subject_name, prefix)
+            ensure_parent_exists(fp_o_prefix)
             fps = []
             fps_o = []
             for view_id in self.view_IDs:
@@ -1661,7 +1662,6 @@ class TPA_RGB_Dataset_Maker(_Dataset_Maker):
             fp_o_rgb = fp_o_prefix + "ID" + "RGB"
             dirs2copy.append(fp_rgb)
             dirs2output.append(fp_o_rgb)
-            #XXX Add RGB
             fps2copy.append(fps)
             fps2output.append(fps_o)
         prefixes2make_number = len(set(prefixes2make))
@@ -1677,8 +1677,11 @@ class TPA_RGB_Dataset_Maker(_Dataset_Maker):
         for src_tuple, dst_tuple in zip(fps2copy, fps2output):
             for src, dst in zip(src_tuple, dst_tuple):
                 shutil.copy2(src, dst)
-        for src_tuple, dst_tuple in zip(dirs2copy, dirs2output):
-            for src, dst in zip(src_tuple, dst_tuple):
+        for src, dst in zip(dirs2copy, dirs2output):
+            try:
+                shutil.copytree(src, dst)
+            except FileExistsError:
+                shutil.rmtree(dst)
                 shutil.copytree(src, dst)
         self._log("Writing nfo, labels and json files...")
         self._write_nfo()

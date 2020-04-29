@@ -1192,3 +1192,46 @@ class Test_class_TPA_RGB_Preparer(unittest.TestCase):
         _cleanup(expected_fps)
         if os.path.exists(dest):
             os.rmdir(dest)
+
+
+
+class Test_class_TPA_RGB_Dataset_Maker(unittest.TestCase):
+    def test_generate_config_template(self):
+        gen = tools.TPA_RGB_Dataset_Maker()
+        _init()
+        out_fp = os.path.join(TMP_PATH, "template.json")
+        gen.generate_config_template(out_fp)
+        self.assertTrue(os.path.exists(out_fp))
+        _cleanup([out_fp])
+
+    def test_init_config(self):
+        tpa_rgb_dataset = tools.TPA_RGB_Dataset_Maker()
+        self.assertFalse(tpa_rgb_dataset.configured)
+        tpa_rgb_dataset.config(TPA_DS_CONFIG)
+        self.assertTrue(tpa_rgb_dataset.configured)
+        tpa_rgb_dataset_messed = tools.TPA_RGB_Dataset_Maker()
+        with self.assertRaises(Exception) as context:
+            tpa_rgb_dataset_messed.config(TPA_DS_CONFIG_MESSED)
+        self.assertFalse(tpa_rgb_dataset_messed.configured)
+
+    def test_make(self):
+        with open(TPA_DS_CONFIG) as f:
+            cnfg = json.load(f)
+        dest = cnfg["dataset_destination_dir"]
+        tpa_rgb_dataset = tools.TPA_RGB_Dataset_Maker()
+        self.assertFalse(tpa_rgb_dataset.configured)
+        tpa_rgb_dataset.config(TPA_DS_CONFIG)
+        tpa_rgb_dataset.make()
+        fns_test1 = ["20200415_1438_ID121.TXT",
+               "20200415_1438_ID122.TXT", "20200415_1438_ID123.TXT"] +["20200415_1438_IDRGB"]
+        fns = ["tpa.nfo", "labels.json", "test1"] 
+        with open(os.path.join(dest, "tpa.nfo")) as f:
+            data = json.load(f)
+            self.assertTrue(data[tools.MADE_OK_KEY])
+        expected_fps = [os.path.join(dest, f) for f in fns]
+        expected_fns_test1 = [os.path.join(dest, "test1", f) for f in fns_test1]
+        self.assertEqual(
+            set(glob.glob(os.path.join(dest, "*"))), set(expected_fps))
+        self.assertEqual(
+            set(glob.glob(os.path.join(dest,"*","*"))), set(expected_fns_test1))
+        shutil.rmtree(os.path.join(dest))
