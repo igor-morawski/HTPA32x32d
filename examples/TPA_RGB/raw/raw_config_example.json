@@ -1,0 +1,10 @@
+{
+    "raw_input_dir": "raw",
+    "processed_destination_dir": "processed",
+    "view_IDs": ["121", "122", "123"],
+    "tpas_extension": "TXT",
+    "MAKE": 0,
+    "PREPARE": 1, 
+    "UNDISTORT": 1,
+    "calib_fp": "calib.pkl"
+}
