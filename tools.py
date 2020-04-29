@@ -102,7 +102,8 @@ def read_tpa_file(filepath: str, array_size: int = 32):
     if reader == 'pickle':
         return pickle2np(filepath)
 
-def write_tpa_file(filepath: str, array, timestamps: list) -> bool:
+
+def write_tpa_file(filepath: str, array, timestamps: list, header = None) -> bool:
     """
     Convert and save Heimann HTPA NumPy array shaped [frames, height, width] to a txt file.
     Currently supported: see SUPPORTED_EXTENSIONS flag
@@ -120,12 +121,13 @@ def write_tpa_file(filepath: str, array, timestamps: list) -> bool:
     assert (extension_lowercase in SUPPORTED_EXTENSIONS)
     writer = READERS_EXTENSIONS_DICT[extension_lowercase]
     if writer == 'txt':
-        return write_np2txt(filepath, array, timestamps)
+        return write_np2txt(filepath, array, timestamps, header=header)
     if writer == 'csv':
+        assert not header
         return write_np2csv(filepath, array, timestamps)
     if writer == 'pickle':
+        assert not header
         return write_np2pickle(filepath, array, timestamps)
-
 
 
 def read_txt_header(filepath: str):
@@ -144,7 +146,7 @@ def read_txt_header(filepath: str):
     with open(filepath) as f:
         header = f.readline().rstrip()
     return header
-    
+
 
 def txt2np(filepath: str, array_size: int = 32):
     """
@@ -536,7 +538,6 @@ def match_timesteps(*timestamps_lists):
     return indices_list
 
 
-
 def match_timesteps2(*timestamps_lists):
     #XXX Not finished
     """
@@ -563,7 +564,7 @@ def match_timesteps2(*timestamps_lists):
     #min_len_idx = np.array([len(ts) for ts in ts_list]).argmin()
     #min_len_ts = ts_list[min_len_idx]
     max_error_list = [0] * len(ts_list)
-    for idx, ts in enumerate(ts_list): 
+    for idx, ts in enumerate(ts_list):
         for idx2, ts2 in enumerate(ts_list):
             if (idx == idx2):
                 continue
@@ -580,9 +581,8 @@ def match_timesteps2(*timestamps_lists):
         if (idx == min_error_idx):
             indices_list[idx] = list(range(len(min_error_ts)))
         else:
-            indices_list[idx] = list(cdist(min_error_ts, ts).argmin(axis=-1))  
+            indices_list[idx] = list(cdist(min_error_ts, ts).argmin(axis=-1))
     return indices_list
-
 
 
 def resample_np_tuples(arrays, indices=None, step=None):
@@ -811,6 +811,9 @@ class TPA_Sample_from_filepaths(_TPA_Sample):
         """
         raise Exception(
             "Use TPA_Sample_from_data if you need to modify arrays.")
+    
+    def get_header(self):
+        return read_txt_header(self.filepaths[0])
 
 
 class TPA_Sample_from_data(_TPA_Sample):
@@ -840,11 +843,12 @@ class TPA_Sample_from_data(_TPA_Sample):
         returns True if arrays are the same length. 
     """
 
-    def __init__(self, arrays, timestamps, ids, output_filepaths=None):
+    def __init__(self, arrays, timestamps, ids, output_filepaths=None, header=None):
         filepaths = None
         ids = ids.copy()
         arrays = arrays.copy()
         timestamps = timestamps.copy()
+        self.header = header
         _TPA_Sample.__init__(self, filepaths, ids, arrays, timestamps)
         if output_filepaths:
             self.filepaths = output_filepaths
@@ -858,8 +862,10 @@ class TPA_Sample_from_data(_TPA_Sample):
         Write stored arrays to filepaths in self.filepaths
         """
         assert self.filepaths
+        if self.header:
+            assert (get_extension(self.filepaths[0]).lower() == 'txt')
         for fp, array, ts in zip(self.filepaths, self.arrays, self.timestamps):
-            write_tpa_file(fp, array, ts)
+            write_tpa_file(fp, array, ts, header=self.header)
         return True
 
     def align_timesteps(self, reset_T0=False):
@@ -893,7 +899,7 @@ class _TPA_File_Manager():
     TPA_Preparer and TPA_Dataset_Maker inherit from this class.
     """
 
-    def __init__(self, reset_log = True):
+    def __init__(self, reset_log=True):
         self.configured = False
         if (VERBOSE and reset_log):
             self._make_log = "make.log"
@@ -953,8 +959,20 @@ class _TPA_File_Manager():
         prefixes2filter = prefixes2filter_copy.copy()
         return prefixes2filter
 
+    def _remove_missing_rgbs(self, prefixes2process: list):
+        rgb_dirs_prefixes = set([_TPA_get_file_prefix(dir) for dir in glob.glob(
+            os.path.join(self.raw_input_dir, "*IDRGB"))])
+        prefixes2process_copy = prefixes2process.copy()
+        for prefix in prefixes2process:
+            if prefix not in rgb_dirs_prefixes:
+                prefixes2process_copy.remove(prefix)
+                self._log(
+                    '[WARNING] Ignoring prefix {} because it misses RGB view'.format(prefix))
+        return prefixes2process_copy
+
+
 class _Preparer(_TPA_File_Manager):
-    def __init__(self, reset_log = True):
+    def __init__(self, reset_log=True):
         _TPA_File_Manager.__init__(self, reset_log)
         self._json_required_keys = ["raw_input_dir", "processed_destination_dir", "view_IDs",
                                     "tpas_extension", "MAKE", "PREPARE"]
@@ -1002,7 +1020,7 @@ class _Preparer(_TPA_File_Manager):
     def _write_make_file(self):
         filepath = os.path.join(
             self.processed_destination_dir, "make_config.json")
-        dataset_maker = TPA_Dataset_Maker(reset_log = False)
+        dataset_maker = TPA_Dataset_Maker(reset_log=False)
         fill_dict = {}
         fill_dict.update({"view_IDs": self.view_IDs})
         fill_dict.update({"tpas_extension": self.tpas_extension})
@@ -1013,7 +1031,6 @@ class _Preparer(_TPA_File_Manager):
         fill_dict.update({"MAKE": 1})
         fill_dict.update({"PREPARE": 0})
         dataset_maker.generate_config_template(filepath, fill_dict)
-
 
 
 class TPA_Preparer(_Preparer):
@@ -1056,7 +1073,8 @@ class TPA_Preparer(_Preparer):
     def config(self, json_filepath):
         self._config(json_filepath)
         if any([self.undistort, self.calib_fp]):
-            self._log("[WARNING] UNDISTORT and calib_fp not supported in TPA_Preparer")
+            self._log(
+                "[WARNING] UNDISTORT and calib_fp not supported in TPA_Preparer")
         return True
 
     def prepare(self):
@@ -1111,17 +1129,20 @@ class TPA_Preparer(_Preparer):
         self._log("OK")
 
 
-class TPA_Dataset_Maker(_TPA_File_Manager):
-    '''
-    #TODO CALL A TPA_Preparer FIRST ; #TODO FINISH DOCS
-    '''
-
-    def __init__(self, reset_log = True):
+class _Dataset_Maker(_TPA_File_Manager):
+    def __init__(self, reset_log=True):
         _TPA_File_Manager.__init__(self, reset_log)
         self._json_required_keys = ["dataset_destination_dir", "view_IDs",
                                     "processed_input_dir", "labels_filepath", "tpas_extension", "MAKE", "PREPARE"]
 
-    def config(self, json_filepath):
+    def generate_config_template(self, output_json_filepath, fill_dict=None):
+        init_fill_dict = {"MAKE": 1, "PREPARE": 0}
+        if fill_dict:
+            init_fill_dict.update(fill_dict)
+        self._generate_config_template(
+            output_json_filepath, fill_dict=init_fill_dict)
+
+    def _config(self, json_filepath):
         with open(json_filepath) as f:
             self._json = json.load(f)
         assert self._validate_config()
@@ -1145,12 +1166,39 @@ class TPA_Dataset_Maker(_TPA_File_Manager):
         self.configured = True
         return True
 
-    def generate_config_template(self, output_json_filepath, fill_dict=None):
-        init_fill_dict = {"MAKE": 1, "PREPARE": 0}
-        if fill_dict:
-            init_fill_dict.update(fill_dict)
-        self._generate_config_template(
-            output_json_filepath, fill_dict=init_fill_dict)
+    def _write_nfo(self):
+        filepath = os.path.join(self.dataset_destination_dir, TPA_NFO_FN)
+        data = {MADE_OK_KEY: 1}
+        with open(filepath, 'w') as f:
+            json.dump(data, f)
+
+    def _copy_labels_file(self):
+        src = os.path.join(self.labels_filepath)
+        dst = os.path.join(self.dataset_destination_dir, "labels.json")
+        shutil.copy2(src, dst)
+
+    def _read_labels_file(self, json_filepath):
+        with open(json_filepath) as f:
+            data = json.load(f)
+        for key in data.keys():
+            if (len(key.split("ID")) > 1):
+                old_key = key
+                new_key = key.split("ID")[0]
+                data[new_key] = data.pop(old_key)
+        return data
+
+
+class TPA_Dataset_Maker(_Dataset_Maker):
+    '''
+    CALL A TPA_Preparer FIRST ; #TODO FINISH DOCS
+    '''
+
+    def __init__(self, reset_log=True):
+        _Dataset_Maker.__init__(self, reset_log)
+
+    def config(self, json_filepath):
+        self._config(json_filepath)
+        return True
 
     def make(self):
         if not self.configured:
@@ -1223,29 +1271,8 @@ class TPA_Dataset_Maker(_TPA_File_Manager):
         self._log("OK")
         return True
 
-    def _write_nfo(self):
-        filepath = os.path.join(self.dataset_destination_dir, TPA_NFO_FN)
-        data = {MADE_OK_KEY: 1}
-        with open(filepath, 'w') as f:
-            json.dump(data, f)
-
-    def _copy_labels_file(self):
-        src = os.path.join(self.labels_filepath)
-        dst = os.path.join(self.dataset_destination_dir, "labels.json")
-        shutil.copy2(src, dst)
-
-    def _read_labels_file(self, json_filepath):
-        with open(json_filepath) as f:
-            data = json.load(f)
-        for key in data.keys():
-            if (len(key.split("ID")) > 1):
-                old_key = key
-                new_key = key.split("ID")[0]
-                data[new_key] = data.pop(old_key)
-        return data
-
-
 ### TPA (multi-view) + RGB (one-view) samples
+
 
 class _TPA_RGB_Sample():
     """
@@ -1260,7 +1287,6 @@ class _TPA_RGB_Sample():
 
     def _update_TPA_RGB_timestamps(self):
         self._TPA_RGB_timestamps = self.TPA.timestamps + [self.RGB.timestamps]
-
 
     def test_alignment(self):
         lengths = [len(ts) for ts in self._TPA_RGB_timestamps]
@@ -1279,7 +1305,8 @@ class RGB_Sample_from_filepaths():
         globbed_rgb_dir = list(
             glob.glob(os.path.join(rgb_directory, "*-*[0-9]." + HTPA_UDP_MODULE_WEBCAM_IMG_EXT)))
         if not globbed_rgb_dir:
-            raise ValueError("Specified directory {} is empty or doesn't exist.".format(rgb_directory))
+            raise ValueError(
+                "Specified directory {} is empty or doesn't exist.".format(rgb_directory))
         unsorted_timestamps = [float(remove_extension(
             os.path.basename(fp)).replace("-", ".")) for fp in globbed_rgb_dir]
         self.timestamps, self.filepaths = (list(t) for t in zip(
@@ -1295,6 +1322,9 @@ class TPA_RGB_Sample_from_filepaths(_TPA_RGB_Sample):
         TPA = TPA_Sample_from_filepaths(tpa_filepaths)
         RGB = RGB_Sample_from_filepaths(rgb_directory)
         _TPA_RGB_Sample.__init__(self, TPA, RGB)
+
+    def get_header(self):
+        return read_txt_header(self.TPA.filepaths[0])
 
     def write(self):
         """
@@ -1318,8 +1348,9 @@ class TPA_RGB_Sample_from_data(_TPA_RGB_Sample):
     RGB is from filepaths
     """
 
-    def __init__(self, tpa_arrays, tpa_timestamps, tpa_ids, rgb_directory, tpa_output_filepaths = None, rgb_output_directory = None):
-        TPA = TPA_Sample_from_data(tpa_arrays, tpa_timestamps, tpa_ids, tpa_output_filepaths)
+    def __init__(self, tpa_arrays, tpa_timestamps, tpa_ids, rgb_directory, tpa_output_filepaths=None, rgb_output_directory=None, header=None):
+        TPA = TPA_Sample_from_data(
+            tpa_arrays, tpa_timestamps, tpa_ids, tpa_output_filepaths, header=header)
         RGB = RGB_Sample_from_filepaths(rgb_directory)
         self.rgb_output_directory = rgb_output_directory
         _TPA_RGB_Sample.__init__(self, TPA, RGB)
@@ -1330,15 +1361,15 @@ class TPA_RGB_Sample_from_data(_TPA_RGB_Sample):
         and RGB bitmaps to self.rgb_output_directory
         """
         assert self.test_alignment()
-        assert self.TPA.filepaths 
+        assert self.TPA.filepaths
         assert self.rgb_output_directory
         self.TPA.write()
         ensure_path_exists(self.rgb_output_directory)
         for src, timestamp in zip(self.RGB.filepaths, self.RGB.timestamps):
-            new_fn = "{:.2f}".format(timestamp).replace(".","-") + "." + HTPA_UDP_MODULE_WEBCAM_IMG_EXT
+            new_fn = "{:.2f}".format(timestamp).replace(
+                ".", "-") + "." + HTPA_UDP_MODULE_WEBCAM_IMG_EXT
             dst = os.path.join(self.rgb_output_directory, new_fn)
-            shutil.copy2(src,dst)
-
+            shutil.copy2(src, dst)
 
     def align_timesteps(self, reset_T0=False):
         """
@@ -1356,20 +1387,22 @@ class TPA_RGB_Sample_from_data(_TPA_RGB_Sample):
             timestamps = np.array(self.TPA.timestamps[i])[indexes[i]]
             self.TPA.timestamps[i] = list(timestamps)
         #RGB
-        i+=1
+        i += 1
         self.RGB.timestamps = list(np.array(self.RGB.timestamps)[indexes[i]])
         self.RGB.filepaths = list(np.array(self.RGB.filepaths)[indexes[i]])
         #update timestamps
         self._update_TPA_RGB_timestamps()
         if reset_T0:
             sample_T0_min = np.min([ts[0] for ts in self._TPA_RGB_timestamps])
-            timestamps = [list(np.array(ts)-sample_T0_min) for ts in self._TPA_RGB_timestamps]
+            timestamps = [list(np.array(ts)-sample_T0_min)
+                          for ts in self._TPA_RGB_timestamps]
             self.TPA.timestamps = timestamps[:-1]
             self.RGB.timestamps = timestamps[-1]
             self._update_TPA_RGB_timestamps()
         return True
 
-def _unpack_calib_pkl(fp : str) -> list:
+
+def _unpack_calib_pkl(fp: str) -> list:
     """
     Return content of calibration .pkl used in the project. 
     This function serves as a guide to formatting your own calibration matrix.
@@ -1410,13 +1443,15 @@ def _unpack_calib_pkl(fp : str) -> list:
     unparsed_keys = result
     return mtx, dist, width, height, unparsed_keys
 
+
 class _Undistorter():
     def __init__(self, mtx, dist, width, height):
-        newcameramtx, roi=cv2.getOptimalNewCameraMatrix(mtx,dist,(width,height),1,(width,height))
+        newcameramtx, roi = cv2.getOptimalNewCameraMatrix(
+            mtx, dist, (width, height), 1, (width, height))
         self.mtx = mtx
         self.dist = dist
         self.newcameramtx, self.roi = newcameramtx, roi
-    
+
     def undistort(self, img):
         return cv2.undistort(img, self.mtx, self.dist, None, self.newcameramtx)
 
@@ -1455,7 +1490,7 @@ class TPA_RGB_Preparer(_Preparer):
     
     """
 
-    def __init__(self, reset_log = True):
+    def __init__(self, reset_log=True):
         _Preparer.__init__(self, reset_log)
 
     def config(self, json_filepath):
@@ -1466,12 +1501,13 @@ class TPA_RGB_Preparer(_Preparer):
             msg = "[ERROR] Only .txt supported!"
             raise Exception(msg)
         lowercase_ids = [id.lower() for id in self.view_IDs]
-        if 'rgb' in lowercase_ids: 
+        if 'rgb' in lowercase_ids:
             msg = "[ERROR] RGB in view_IDs skipped, RGB is handled by default, no need to fill it in view_IDs. Remove it from view_IDs."
             self._log(msg)
             raise Exception(msg)
         if self.undistort and (not os.path.exists(self.calib_fp)):
-            msg = "[ERROR] {} doesn't exist while UNDISTORT is True".format(self.calib_fp)
+            msg = "[ERROR] {} doesn't exist while UNDISTORT is True".format(
+                self.calib_fp)
             self._log(msg)
             raise Exception(msg)
         return True
@@ -1493,13 +1529,7 @@ class TPA_RGB_Preparer(_Preparer):
         # filter out samples that miss views
         prefixes2process = self._remove_missing_views(
             prefixes, prefixes2process)
-        rgb_dirs_prefixes = set([_TPA_get_file_prefix(dir) for dir in glob.glob(os.path.join(self.raw_input_dir, "*IDRGB"))])
-        prefixes2process_copy = prefixes2process.copy()
-        for prefix in prefixes2process:
-            if prefix not in rgb_dirs_prefixes:
-                prefixes2process_copy.remove(prefix)
-                self._log('[WARNING] Ignoring prefix {} because it misses RGB view'.format(prefix))
-        prefixes2process = prefixes2process_copy.copy()
+        prefixes2process = self._remove_missing_rgbs(prefixes2process)
         prefixes2process_number = len(set(prefixes2process))
         prefixes_ignored = prefixes2process_number0 - prefixes2process_number
         self._log("[INFO] {} prefixes ignored out of initial {}".format(
@@ -1520,8 +1550,10 @@ class TPA_RGB_Preparer(_Preparer):
             processed_fps = [processed_fp_prefix + "ID" + view_id +
                              "." + self.tpas_extension for view_id in self.view_IDs]
             rgb_dir = os.path.join(self.raw_input_dir, prefix + "ID" + "RGB")
-            processed_rgb_dir = os.path.join(self.processed_destination_dir, prefix + "ID" + "RGB")
+            processed_rgb_dir = os.path.join(
+                self.processed_destination_dir, prefix + "ID" + "RGB")
             raw_sample = TPA_RGB_Sample_from_filepaths(tpa_fps, rgb_dir)
+            # XXX Copy header!!!
             processed_sample = TPA_RGB_Sample_from_data(raw_sample.TPA.arrays, raw_sample.TPA.timestamps, raw_sample.TPA.ids,
                                                         rgb_dir, tpa_output_filepaths=processed_fps, rgb_output_directory=processed_rgb_dir)
             processed_sample.align_timesteps(reset_T0=True)
@@ -1534,7 +1566,8 @@ class TPA_RGB_Preparer(_Preparer):
             if self.visualize:
                 processed_sample.write_gif()
             if self.undistort:
-                img_fps = glob.glob(processed_rgb_dir, "*." + HTPA_UDP_MODULE_WEBCAM_IMG_EXT)
+                img_fps = glob.glob(processed_rgb_dir,
+                                    "*." + HTPA_UDP_MODULE_WEBCAM_IMG_EXT)
                 for img_fp in img_fps:
                     img = cv2.imread(img_fp)
                     cv2.imwrite(img_fp, self._undistorter.undistort(img))
@@ -1545,3 +1578,111 @@ class TPA_RGB_Preparer(_Preparer):
         self._write_make_file()
         self._log("Writing nfo, labels and json files...")
         self._log("OK")
+
+
+def _get_subject_from_header(header):
+    '''
+    Gets subject from header formated as: "subject_name, (...)"
+    #TODO DOCS
+    '''
+    return header
+
+
+class TPA_RGB_Dataset_Maker(_Dataset_Maker):
+    '''
+    CALL A TPA_RGBPreparer FIRST ; #TODO FINISH DOCS
+    ONLY TXT SUPPORTED
+    '''
+
+    def __init__(self, reset_log=True):
+        _Dataset_Maker.__init__(self, reset_log)
+
+    def config(self, json_filepath):
+        self._config(json_filepath)
+        return True
+
+    def make(self):
+        if not self.configured:
+            msg = "Configure with config() first"
+            self._log(msg)
+            raise Exception(msg)
+        ensure_path_exists(self.dataset_destination_dir)
+        glob_patterns = [os.path.join(
+            self.processed_input_dir, "*ID"+id+"."+self.tpas_extension) for id in self.view_IDs]
+        files = []
+        for pattern in glob_patterns:
+            files.extend(glob.glob(pattern))
+        prefixes = [_TPA_get_file_prefix(f) for f in files]
+        # processed samples are assumed to be aligned
+        prefixes2make = list(set(prefixes))
+        prefixes2make_number0 = len(prefixes2make)
+        # filter out samples that miss views or RGBs
+        prefixes2make = self._remove_missing_views(prefixes, prefixes2make)
+        prefixes2make = self._remove_missing_rgbs(prefixes2make)
+        # filter out samples that miss a label
+        self._labels = self._read_labels_file(self.labels_filepath)
+        prefixes2make_copy = prefixes2make.copy()
+        for prefix in prefixes2make:
+            if (prefix not in self._labels):
+                prefixes2make_copy.remove(prefix)
+                self._log('[WARNING] Ignoring prefix {} because it misses a label'.format(
+                    prefix))
+        prefixes2make = prefixes2make_copy.copy()
+        for prefix in prefixes2make:
+            if not self._labels[prefix]:
+                prefixes2make_copy.remove(prefix)
+                self._log('[WARNING] Ignoring prefix {} because it misses a label'.format(
+                    prefix))
+        prefixes2make = prefixes2make_copy.copy()
+        for prefix in prefixes2make:
+            if not (type(self._labels[prefix]) == int):
+                prefixes2make_copy.remove(prefix)
+                self._log('[WARNING] Ignoring prefix {} because the label is incorrect (it is not an integer)'.format(
+                    prefix))
+        prefixes2make = prefixes2make_copy.copy()
+        # process the files
+        fps2copy = []
+        fps2output = []
+        dirs2copy = []
+        dirs2output = []
+        for prefix in prefixes2make:
+            #XXX Add header dir
+            subject_name = _get_subject_from_header(read_txt_header(os.path.join(
+                self.processed_input_dir, prefix + "ID" + self.view_id[0] + "." + self.tpas_extension)))
+            fp_prefix = os.path.join(self.processed_input_dir, prefix)
+            fp_o_prefix = os.path.join(self.dataset_destination_dir, prefix)
+            fps = []
+            fps_o = []
+            for view_id in self.view_IDs:
+                fp = fp_prefix + "ID" + view_id + "." + self.tpas_extension
+                fp_o = fp_o_prefix + "ID" + view_id + "." + self.tpas_extension
+                fps.append(fp)
+                fps_o.append(fp_o)
+            fp_rgb = fp_prefix + "ID" + "RGB"
+            fp_o_rgb = fp_o_prefix + "ID" + "RGB"
+            dirs2copy.append(fp_rgb)
+            dirs2output.append(fp_o_rgb)
+            #XXX Add RGB
+            fps2copy.append(fps)
+            fps2output.append(fps_o)
+        prefixes2make_number = len(set(prefixes2make))
+        prefixes_ignored = prefixes2make_number0 - prefixes2make_number
+        self._log("[INFO] {} prefixes ignored out of initial {}".format(
+            prefixes_ignored, prefixes2make_number0))
+        if (prefixes_ignored == prefixes2make_number0):
+            self._log("[WARNING] All files ignored, dataset is empty.")
+            self._log("FAILED")
+            return False
+        self._log("[INFO] Making dataset...")
+        self._log("[INFO] Copying files...")
+        for src_tuple, dst_tuple in zip(fps2copy, fps2output):
+            for src, dst in zip(src_tuple, dst_tuple):
+                shutil.copy2(src, dst)
+        for src_tuple, dst_tuple in zip(dirs2copy, dirs2output):
+            for src, dst in zip(src_tuple, dst_tuple):
+                shutil.copytree(src, dst)
+        self._log("Writing nfo, labels and json files...")
+        self._write_nfo()
+        self._copy_labels_file()
+        self._log("OK")
+        return True
