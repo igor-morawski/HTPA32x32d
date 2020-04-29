@@ -1280,7 +1280,6 @@ class TPA_RGB_Sample_from_data(_TPA_RGB_Sample):
         and RGB bitmaps to self.rgb_output_directory
         """
         assert self.test_alignment()
-        print([len(l) for l in self._TPA_RGB_timestamps])
         assert self.TPA.filepaths 
         assert self.rgb_output_directory
         self.TPA.write()
