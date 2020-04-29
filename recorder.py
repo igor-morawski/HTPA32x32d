@@ -13,6 +13,7 @@ from pathlib import Path
 import struct
 
 import htpa32x32d_udp
+import tools
 
 
 def query_yes_no(question, default="yes"):
@@ -79,13 +80,13 @@ def main():
         Path(directory_path).mkdir(parents=True, exist_ok=True)
         rgb_path = os.path.join(directory_path,"{}_ID{}".format(global_T0_YYYYMMDD_HHMM, "RGB"))
         Path(rgb_path).mkdir(parents=True, exist_ok=True)
-        webcam = htpa32x32d_udp.WebCam(rgb_path, global_T0)
+        webcam = htpa32x32d_udp.WebCam(rgb_path, global_T0, extension=tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT)
         recorders = []
         for device in devices:
             fn = "{}_ID{}.TXT".format(
                 global_T0_YYYYMMDD_HHMM, device.ip.split(".")[-1])
             fp = os.path.join(directory_path, fn)
-            recorders.append(htpa32x32d_udp.Recorder(device, fp, global_T0, webcam=webcam))
+            recorders.append(htpa32x32d_udp.Recorder(device, fp, global_T0))
         try:
             webcam.start()
             for recorder in recorders:
