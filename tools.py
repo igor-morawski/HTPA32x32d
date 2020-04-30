@@ -959,7 +959,7 @@ class _TPA_File_Manager():
         prefixes2filter = prefixes2filter_copy.copy()
         return prefixes2filter
 
-    def _remove_missing_rgbs(self, prefixes2process: list, scanned_dir : str):
+    def _remove_missing_rgbs(self, prefixes2process: list, scanned_dir: str):
         rgb_dirs_prefixes = set([_TPA_get_file_prefix(dir) for dir in glob.glob(
             os.path.join(scanned_dir, "*IDRGB"))])
         prefixes2process_copy = prefixes2process.copy()
@@ -1299,6 +1299,36 @@ class _TPA_RGB_Sample():
                 return False
         return True
 
+    def write_gif(self):  # XXX FINISH, TEST
+        """
+        Writes visualization gif to same directory as in self.filepaths,
+        the filename follows the template: FILE_PREFIX_ID{id1}-{id2}-...-{idn}.gif
+        """
+        if not self.test_alignment():
+            raise Exception("Unaligned sequences cannot be synchronized!")
+        data = np.concatenate(self.TPA.arrays, axis=2)
+        pc = np2pc(data)
+        rgb_height, rgb_width = (cv2.imread(self.RGB.filepaths[0]).shape)[0:2]
+        new_width = int(rgb_width/len(self.TPA.arrays))*len(self.TPA.arrays)
+        new_height = int(rgb_width/len(self.TPA.arrays))
+        pc_reshaped = [cv2.resize(frame, dsize=(
+            new_width, new_height), interpolation=cv2.INTER_NEAREST) for frame in pc]
+        pc_reshaped = np.array(pc_reshaped).astype(np.uint8)
+        margin_size = rgb_width-new_width
+        pc_frames, pc_height, pc_width, pc_ch = pc_reshaped.shape
+        pc = np.concatenate([pc_reshaped, np.zeros(
+            [pc_frames, pc_height, margin_size, pc_ch], dtype=np.uint8)], axis=2)
+        img_sequence = [cv2.imread(fp) for fp in self.RGB.filepaths]
+        rgb_sequence = np.array(img_sequence).astype(np.uint8)
+        vis = np.concatenate([pc, rgb_sequence], axis=1)
+        ts = np.sum(self._TPA_RGB_timestamps, axis=0) / \
+            len(self._TPA_RGB_timestamps)
+        duration = timestamps2frame_durations(ts)
+        head, tail = os.path.split(self.TPA.filepaths[0])
+        fn = _TPA_get_file_prefix(tail) + "ID" + "-".join(self.TPA.ids) + "-RGB" + ".gif"
+        fp = os.path.join(head, fn)
+        write_pc2gif(vis, fp, duration=duration)
+
 
 class RGB_Sample_from_filepaths():
     def __init__(self, rgb_directory):
@@ -1495,8 +1525,6 @@ class TPA_RGB_Preparer(_Preparer):
 
     def config(self, json_filepath):
         self._config(json_filepath)
-        if any([self.visualize]):
-            self._log("[WARNING] VISUALIZE not supported in RGB_TPA_Preparer")
         if (self.tpas_extension.lower() != 'txt'):
             msg = "[ERROR] Only .txt supported!"
             raise Exception(msg)
@@ -1529,7 +1557,8 @@ class TPA_RGB_Preparer(_Preparer):
         # filter out samples that miss views
         prefixes2process = self._remove_missing_views(
             prefixes, prefixes2process)
-        prefixes2process = self._remove_missing_rgbs(prefixes2process, self.raw_input_dir)
+        prefixes2process = self._remove_missing_rgbs(
+            prefixes2process, self.raw_input_dir)
         prefixes2process_number = len(set(prefixes2process))
         prefixes_ignored = prefixes2process_number0 - prefixes2process_number
         self._log("[INFO] {} prefixes ignored out of initial {}".format(
@@ -1566,7 +1595,8 @@ class TPA_RGB_Preparer(_Preparer):
             if self.visualize:
                 processed_sample.write_gif()
             if self.undistort:
-                img_fps = glob.glob(os.path.join(processed_rgb_dir, "*." + HTPA_UDP_MODULE_WEBCAM_IMG_EXT))
+                img_fps = glob.glob(os.path.join(
+                    processed_rgb_dir, "*." + HTPA_UDP_MODULE_WEBCAM_IMG_EXT))
                 for img_fp in img_fps:
                     img = cv2.imread(img_fp)
                     cv2.imwrite(img_fp, self._undistorter.undistort(img))
@@ -1616,7 +1646,8 @@ class TPA_RGB_Dataset_Maker(_Dataset_Maker):
         prefixes2make_number0 = len(prefixes2make)
         # filter out samples that miss views or RGBs
         prefixes2make = self._remove_missing_views(prefixes, prefixes2make)
-        prefixes2make = self._remove_missing_rgbs(prefixes2make, self.processed_input_dir)
+        prefixes2make = self._remove_missing_rgbs(
+            prefixes2make, self.processed_input_dir)
         # filter out samples that miss a label
         self._labels = self._read_labels_file(self.labels_filepath)
         prefixes2make_copy = prefixes2make.copy()
@@ -1646,9 +1677,10 @@ class TPA_RGB_Dataset_Maker(_Dataset_Maker):
         for prefix in prefixes2make:
             subject_name = _get_subject_from_header(read_txt_header(os.path.join(
                 self.processed_input_dir, prefix + "ID" + self.view_IDs[0] + "." + self.tpas_extension)))
-            subject_name=re.sub('[^\w\-_\. ]', '_',subject_name)
+            subject_name = re.sub('[^\w\-_\. ]', '_', subject_name)
             fp_prefix = os.path.join(self.processed_input_dir, prefix)
-            fp_o_prefix = os.path.join(self.dataset_destination_dir, subject_name, prefix)
+            fp_o_prefix = os.path.join(
+                self.dataset_destination_dir, subject_name, prefix)
             ensure_parent_exists(fp_o_prefix)
             fps = []
             fps_o = []
