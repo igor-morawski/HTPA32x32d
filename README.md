@@ -38,11 +38,11 @@ A collection of useful functions and data structures for working with data captu
 * `crop_center` to keep only center portion of the sequence, e.g. 28x28 out of 32x32 pixels
 
 ### Samples - data structures:
-Samples now support visualization by using write_gif() IF the data is aligned.
-* TPA_Sample_from_data 
-* TPA_Sample_from_filepaths 
-* TPA_RGB_Sample_from_data 
-* TPA_RGB_Sample_from_filepaths 
+Samples now support visualization by using write_gif() [given that the data is aligned].
+* `TPA_Sample_from_data `
+* `TPA_Sample_from_filepaths`
+* `TPA_RGB_Sample_from_data` 
+* `TPA_RGB_Sample_from_filepaths` 
 
 ### Dataset making
 
