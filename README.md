@@ -1,5 +1,7 @@
 Feel free to [contact me](https://www.linkedin.com/in/igor-morawski/) if you have any questions about the sensor or the research.
 
+If you need to use this module to work with Heimann HTPA32x32d, I suggest forking the repo because maintaining backwards compatibility (as well as documentation) is not my priority at the moment. 
+
 # HTPA32x32d 
 
 This repository contains tools to work with thermopile sensor array Heimann HTPA 32x32d and UDP communication module (included in the starting kit) in multi-view setup. Because it is still uner development for my research, there might be **no backward compability** between the commits.
@@ -15,7 +17,7 @@ A collection of useful functions and data structures for working with data captu
 
 ### Data types supported
 * Call `SUPPORTED_EXTENSIONS` to see the list of currently supported types.
-  * txt
+  * txt ⟵ currently the only extension that can copy file headers (the first line in Heimanns HTPA recordings)
   * csv
   * pickle (.pickle, .pkl, .p)
 
@@ -34,6 +36,13 @@ A collection of useful functions and data structures for working with data captu
 * `match_timesteps` to get indexes of timestamps so that timestamp\[corresponding_index_list\] is aligned with other given timestamps
 * `resampling`
 * `crop_center` to keep only center portion of the sequence, e.g. 28x28 out of 32x32 pixels
+
+### Samples - data structures:
+Samples now support visualization by using write_gif() IF the data is aligned.
+* TPA_Sample_from_data 
+* TPA_Sample_from_filepaths 
+* TPA_RGB_Sample_from_data 
+* TPA_RGB_Sample_from_filepaths 
 
 ### Dataset making
 
