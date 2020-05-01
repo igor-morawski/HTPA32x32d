@@ -1400,6 +1400,12 @@ class TPA_RGB_Sample_from_data(_TPA_RGB_Sample):
                 ".", "-") + "." + HTPA_UDP_MODULE_WEBCAM_IMG_EXT
             dst = os.path.join(self.rgb_output_directory, new_fn)
             shutil.copy2(src, dst)
+        '''
+        write filepaths (relative to dst dir) [otherwise some timesteps will be lost
+        because one frame can be repeated after alignment]
+        '''
+        with open(os.path.join(self.rgb_output_directory, 'timesteps.pkl'), 'wb') as f:
+            pickle.dump(self.RGB.filepaths, f)
 
     def align_timesteps(self, reset_T0=False):
         """
