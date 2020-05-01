@@ -1299,6 +1299,15 @@ class _TPA_RGB_Sample():
                 return False
         return True
 
+    
+    def read_rgb_timesteps(self, filepath : str):
+        """
+        #TODO DOCS
+        """
+        with open(filepath, 'rb') as f:
+            result = pickle.load(f)
+        return result
+
     def write_gif(self):  # XXX FINISH, TEST
         """
         Writes visualization gif to same directory as in self.filepaths,
@@ -1331,16 +1340,23 @@ class _TPA_RGB_Sample():
 
 
 class RGB_Sample_from_filepaths():
-    def __init__(self, rgb_directory):
-        globbed_rgb_dir = list(
-            glob.glob(os.path.join(rgb_directory, "*-*[0-9]." + HTPA_UDP_MODULE_WEBCAM_IMG_EXT)))
-        if not globbed_rgb_dir:
-            raise ValueError(
-                "Specified directory {} is empty or doesn't exist.".format(rgb_directory))
-        unsorted_timestamps = [float(remove_extension(
-            os.path.basename(fp)).replace("-", ".")) for fp in globbed_rgb_dir]
-        self.timestamps, self.filepaths = (list(t) for t in zip(
-            *sorted(zip(unsorted_timestamps, globbed_rgb_dir))))
+    def __init__(self, rgb_directory):      
+        if os.path.exists(os.path.join(rgb_directory, "timesteps.pkl")):
+            with open(os.path.join(rgb_directory, 'timesteps.pkl'), 'rb') as f:
+                filepaths = pickle.load(f)
+            self.filepaths = [os.path.join(rgb_directory, fn) for fn in filepaths]
+            self.timestamps = [float(remove_extension(
+                os.path.basename(fp)).replace("-", ".")) for fp in filepaths]
+        else:
+            globbed_rgb_dir = list(
+                glob.glob(os.path.join(rgb_directory, "*-*[0-9]." + HTPA_UDP_MODULE_WEBCAM_IMG_EXT)))
+            if not globbed_rgb_dir:
+                raise ValueError(
+                    "Specified directory {} is empty or doesn't exist.".format(rgb_directory))
+            unsorted_timestamps = [float(remove_extension(
+                os.path.basename(fp)).replace("-", ".")) for fp in globbed_rgb_dir]
+            self.timestamps, self.filepaths = (list(t) for t in zip(
+                *sorted(zip(unsorted_timestamps, globbed_rgb_dir))))
 
 
 class TPA_RGB_Sample_from_filepaths(_TPA_RGB_Sample):
@@ -1405,7 +1421,7 @@ class TPA_RGB_Sample_from_data(_TPA_RGB_Sample):
         because one frame can be repeated after alignment]
         '''
         with open(os.path.join(self.rgb_output_directory, 'timesteps.pkl'), 'wb') as f:
-            pickle.dump(self.RGB.filepaths, f)
+            pickle.dump([os.path.basename(fp) for fp in self.RGB.filepaths], f)
 
     def align_timesteps(self, reset_T0=False):
         """

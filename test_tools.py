@@ -1037,6 +1037,10 @@ class Test_TPA_RGB_Sample_from_data(unittest.TestCase):
         sample.write()
         expected_rgb_filepaths = ['20200415_1438_IDRGB/1-52.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, '20200415_1438_IDRGB/1-63.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, '20200415_1438_IDRGB/1-75.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, '20200415_1438_IDRGB/1-86.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, '20200415_1438_IDRGB/1-99.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, '20200415_1438_IDRGB/2-11.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, '20200415_1438_IDRGB/2-22.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT,
                                   '20200415_1438_IDRGB/2-35.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, '20200415_1438_IDRGB/2-46.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, '20200415_1438_IDRGB/2-58.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, '20200415_1438_IDRGB/2-69.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, '20200415_1438_IDRGB/2-85.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, '20200415_1438_IDRGB/2-97.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, '20200415_1438_IDRGB/3-10.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, "20200415_1438_IDRGB/timesteps.pkl"]
+        with open(os.path.join(TMP_PATH, "20200415_1438_IDRGB/timesteps.pkl"), 'rb') as f:
+            rgb_fns = pickle.load(f)
+        rgb_fps = [os.path.join(rgb_dir, fn) for fn in rgb_fns]
+        self.assertEqual(rgb_fps, sample.RGB.filepaths)
         expected_rgb_filepaths = [os.path.join(TMP_PATH, fp) for fp in expected_rgb_filepaths]
         s_o = tools.TPA_Sample_from_filepaths(sample.TPA.filepaths)
         [self.assertTrue(np.array_equal(result, expected))
@@ -1056,7 +1060,10 @@ class Test_TPA_RGB_Sample_from_data(unittest.TestCase):
         self.assertTrue(sample.TPA.filepaths, expected_tpa_fps)
         self.assertTrue(sample.rgb_output_directory, rgb_output_directory)
         sample.align_timesteps()
-        sample.write()
+        sample.write()        
+        with open(os.path.join(TMP_PATH, "20200415_1438_IDRGB/timesteps.pkl"), 'rb') as f:
+            rgb_fns = pickle.load(f)
+        rgb_fps = [os.path.join(rgb_dir, fn) for fn in rgb_fns]
         expected_rgb_filepaths = ['20200415_1438_IDRGB/1-52.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, '20200415_1438_IDRGB/1-63.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, '20200415_1438_IDRGB/1-75.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, '20200415_1438_IDRGB/1-99.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, '20200415_1438_IDRGB/1-99.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, '20200415_1438_IDRGB/2-22.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, 
                                   '20200415_1438_IDRGB/2-35.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, '20200415_1438_IDRGB/2-46.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, '20200415_1438_IDRGB/2-58.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, '20200415_1438_IDRGB/2-85.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, '20200415_1438_IDRGB/timesteps.pkl']
         expected_rgb_filepaths = [os.path.join(TMP_PATH, fp) for fp in expected_rgb_filepaths]
@@ -1082,6 +1089,9 @@ class Test_TPA_RGB_Sample_from_data(unittest.TestCase):
         self.assertTrue(sample.TPA.filepaths, expected_tpa_fps)
         self.assertTrue(sample.rgb_output_directory, rgb_output_directory)
         sample.write()
+        with open(os.path.join(TMP_PATH, "20200415_1438_IDRGB/timesteps.pkl"), 'rb') as f:
+            rgb_fns = pickle.load(f)
+        rgb_fps = [os.path.join(rgb_dir, fn) for fn in rgb_fns]
         expected_rgb_filepaths = ['20200415_1438_IDRGB/1-52.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, '20200415_1438_IDRGB/1-63.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, '20200415_1438_IDRGB/1-75.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, '20200415_1438_IDRGB/1-86.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, '20200415_1438_IDRGB/1-99.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, '20200415_1438_IDRGB/2-11.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, '20200415_1438_IDRGB/2-22.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT,
                                   '20200415_1438_IDRGB/2-35.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, '20200415_1438_IDRGB/2-46.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, '20200415_1438_IDRGB/2-58.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, '20200415_1438_IDRGB/2-69.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, '20200415_1438_IDRGB/2-85.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, '20200415_1438_IDRGB/2-97.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, '20200415_1438_IDRGB/3-10.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, '20200415_1438_IDRGB/timesteps.pkl']
         expected_rgb_filepaths = [os.path.join(TMP_PATH, fp) for fp in expected_rgb_filepaths]
@@ -1095,6 +1105,65 @@ class Test_TPA_RGB_Sample_from_data(unittest.TestCase):
         rgb_dir = os.path.join("testing", "20200415_1438_IDRGB")
         sample = tools.TPA_RGB_Sample_from_filepaths(MV_SAMPLE, rgb_dir)
 
+class Test_Integration_TPA_RGB_Sample_from_data_and_filepaths(unittest.TestCase):
+    def test_data2filepaths(self):
+        rgb_dir = os.path.join("testing", "20200415_1438_IDRGB")
+        s = tools.TPA_Sample_from_filepaths(MV_SAMPLE)
+        a, t, i = s.arrays, s.timestamps, s.ids
+        expected_tpa_fps = [os.path.join(
+            TMP_PATH, "prefix_ID"+id+".txt") for id in i]
+        rgb_output_directory = os.path.join(TMP_PATH, "20200415_1438_IDRGB")
+        sample = tools.TPA_RGB_Sample_from_data(a, t, i, rgb_dir, tpa_output_filepaths=expected_tpa_fps, rgb_output_directory=rgb_output_directory, header='test321')
+        self.assertTrue(sample.TPA.filepaths, expected_tpa_fps)
+        self.assertTrue(sample.rgb_output_directory, rgb_output_directory)
+        sample.write()
+        with open(os.path.join(TMP_PATH, "20200415_1438_IDRGB/timesteps.pkl"), 'rb') as f:
+            rgb_fns = pickle.load(f)
+        rgb_fps = [os.path.join(rgb_dir, fn) for fn in rgb_fns]
+        expected_rgb_filepaths = ['20200415_1438_IDRGB/1-52.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, '20200415_1438_IDRGB/1-63.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, '20200415_1438_IDRGB/1-75.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, '20200415_1438_IDRGB/1-86.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, '20200415_1438_IDRGB/1-99.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, '20200415_1438_IDRGB/2-11.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, '20200415_1438_IDRGB/2-22.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT,
+                                  '20200415_1438_IDRGB/2-35.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, '20200415_1438_IDRGB/2-46.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, '20200415_1438_IDRGB/2-58.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, '20200415_1438_IDRGB/2-69.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, '20200415_1438_IDRGB/2-85.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, '20200415_1438_IDRGB/2-97.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, '20200415_1438_IDRGB/3-10.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, '20200415_1438_IDRGB/timesteps.pkl']
+        expected_rgb_filepaths = [os.path.join(TMP_PATH, fp) for fp in expected_rgb_filepaths]
+        sample2 = tools.TPA_RGB_Sample_from_filepaths(sample.TPA.filepaths, sample.rgb_output_directory)
+        self.assertTrue(sample.test_alignment())
+        self.assertTrue(sample2.test_alignment())
+        self.assertEqual(sample.TPA.filepaths, sample2.TPA.filepaths)
+        self.assertEqual(sample.TPA.timestamps, sample2.TPA.timestamps)
+        self.assertEqual(sample.RGB.timestamps, sample2.RGB.timestamps)
+        sample_rgb_fns = [os.path.basename(fp) for fp in sample.RGB.filepaths]
+        sample2_rgb_fns = [os.path.basename(fp) for fp in sample2.RGB.filepaths]
+        self.assertEqual(sample_rgb_fns, sample2_rgb_fns)
+
+        _cleanup(set(expected_rgb_filepaths + expected_tpa_fps + [os.path.join(TMP_PATH, '20200415_1438_IDRGB')]))
+    def test_data_align_filepaths(self):
+        rgb_dir = os.path.join("testing", "20200415_1438_IDRGB")
+        s = tools.TPA_Sample_from_filepaths(MV_SAMPLE_MESSED)
+        a, t, i = s.arrays, s.timestamps, s.ids
+        expected_tpa_fps = [os.path.join(
+            TMP_PATH, "prefix_ID"+id+".txt") for id in i]
+        rgb_output_directory = os.path.join(TMP_PATH, "20200415_1438_IDRGB")
+        sample = tools.TPA_RGB_Sample_from_data(a, t, i, rgb_dir, tpa_output_filepaths=expected_tpa_fps, rgb_output_directory=rgb_output_directory, header='test321')
+        unaligned_timesteps = sample.RGB.timestamps
+        self.assertTrue(sample.TPA.filepaths, expected_tpa_fps)
+        self.assertTrue(sample.rgb_output_directory, rgb_output_directory)
+        self.assertFalse(sample.test_alignment())
+        sample.align_timesteps()
+        sample.write()
+        expected_rgb_filepaths = ['20200415_1438_IDRGB/1-52.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, '20200415_1438_IDRGB/1-63.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, '20200415_1438_IDRGB/1-75.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, '20200415_1438_IDRGB/1-99.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, '20200415_1438_IDRGB/1-99.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, '20200415_1438_IDRGB/2-22.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, 
+                                  '20200415_1438_IDRGB/2-35.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, '20200415_1438_IDRGB/2-46.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, '20200415_1438_IDRGB/2-58.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, '20200415_1438_IDRGB/2-85.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, '20200415_1438_IDRGB/timesteps.pkl']
+        expected_rgb_filepaths = [os.path.join(TMP_PATH, fp) for fp in expected_rgb_filepaths]
+        sample2 = tools.TPA_RGB_Sample_from_filepaths(sample.TPA.filepaths, sample.rgb_output_directory)
+        self.assertTrue(sample.test_alignment())
+        self.assertTrue(sample2.test_alignment())
+        self.assertEqual(sample.TPA.filepaths, sample2.TPA.filepaths)
+        self.assertEqual(sample.TPA.timestamps, sample2.TPA.timestamps)
+        self.assertEqual(sample.RGB.timestamps, sample2.RGB.timestamps)
+        self.assertNotEqual(sample2.RGB.timestamps, unaligned_timesteps)
+        sample_rgb_fns = [os.path.basename(fp) for fp in sample.RGB.filepaths]
+        sample2_rgb_fns = [os.path.basename(fp) for fp in sample2.RGB.filepaths]
+        self.assertEqual(sample_rgb_fns, sample2_rgb_fns)
+        _cleanup(set(expected_rgb_filepaths + expected_tpa_fps + [os.path.join(TMP_PATH, '20200415_1438_IDRGB')]))
+
+        
 class Test_unpack_calib_pkl(unittest.TestCase):
     def test_result(self):
         pkl_fp = os.path.join('testing', 'testing_TPA_source', 'calib.pkl')
