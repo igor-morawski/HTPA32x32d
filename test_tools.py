@@ -1132,7 +1132,6 @@ class Test_Integration_TPA_RGB_Sample_from_data_and_filepaths(unittest.TestCase)
         sample_rgb_fns = [os.path.basename(fp) for fp in sample.RGB.filepaths]
         sample2_rgb_fns = [os.path.basename(fp) for fp in sample2.RGB.filepaths]
         self.assertEqual(sample_rgb_fns, sample2_rgb_fns)
-
         _cleanup(set(expected_rgb_filepaths + expected_tpa_fps + [os.path.join(TMP_PATH, '20200415_1438_IDRGB')]))
     def test_data_align_filepaths(self):
         rgb_dir = os.path.join("testing", "20200415_1438_IDRGB")
