@@ -1423,11 +1423,13 @@ class TPA_RGB_Sample_from_data(_TPA_RGB_Sample):
             self._log(msg)
             raise ValueError(msg)
         ensure_path_exists(self.rgb_output_directory)
+        dst_filepaths = []
         for src, timestamp in zip(self.RGB.filepaths, self.RGB.timestamps):
             new_fn = "{:.2f}".format(timestamp).replace(
                 ".", "-") + "." + HTPA_UDP_MODULE_WEBCAM_IMG_EXT
             dst = os.path.join(self.rgb_output_directory, new_fn)
             shutil.copy2(src, dst)
+            dst_filepaths.append(dst)
         '''
         write filepaths (relative to dst dir) [otherwise some timesteps will be lost
         because one frame can be repeated after alignment]
@@ -1435,7 +1437,7 @@ class TPA_RGB_Sample_from_data(_TPA_RGB_Sample):
         with open(os.path.join(self.rgb_output_directory, 'timesteps.pkl'), 'wb') as f:
             pickle.dump([os.path.basename(fp) for fp in self.RGB.filepaths], f)
         with open(os.path.join(self.rgb_output_directory, 'timesteps.txt'), 'w') as f:
-            f.write(str(["{}: {}".format(i, fp) for i, fp in enumerate(self.RGB.filepaths)]))
+            f.write(str(["{}: {}".format(i, fp) for i, fp in enumerate(dst_filepaths)]))
 
     def align_timesteps(self, reset_T0=False):
         """
