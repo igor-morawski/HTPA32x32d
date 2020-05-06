@@ -1291,11 +1291,13 @@ class Test_class_TPA_RGB_Dataset_Maker(unittest.TestCase):
         tpa_rgb_dataset.config(TPA_DS_CONFIG)
         tpa_rgb_dataset.make()
         fns_test1 = ["20200415_1438_ID121.TXT",
-               "20200415_1438_ID122.TXT", "20200415_1438_ID123.TXT"] +["20200415_1438_IDRGB"]
+               "20200415_1438_ID122.TXT", "20200415_1438_ID123.TXT"] + ["20200415_1438_IDRGB"]
         fns = ["tpa.nfo", "labels.json", "test1"] 
         with open(os.path.join(dest, "tpa.nfo")) as f:
             data = json.load(f)
             self.assertTrue(data[tools.MADE_OK_KEY])
+        with open(os.path.join(dest, "test1", "1", "20200415_1438_IDRGB", "label.txt")) as f:
+            self.assertEqual(f.read().strip(),str(5))
         expected_fps = [os.path.join(dest, f) for f in fns]
         expected_fns_test1 = [os.path.join(dest, "test1", "1", f) for f in fns_test1]
         self.assertEqual(

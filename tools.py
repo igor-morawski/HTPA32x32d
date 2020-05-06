@@ -41,11 +41,14 @@ PD_PTAT_COL = "PTAT"
 
 TPA_PREFIX_TEMPLATE = "YYYYMMDD_HHMM_ID{VIEW_IDENTIFIER}"
 TPA_NFO_FN = "tpa.nfo"
-PROCESSED_OK_KEY = "ALIGNED"
-MADE_OK_KEY = "DATASET_PREPARED"
+PROCESSED_OK_KEY = "PROCESSED_OK"
+MADE_OK_KEY = "MAKE_OK"
 SYNCHRONIZATION_MAX_ERROR = 0.05
 
 HTPA_UDP_MODULE_WEBCAM_IMG_EXT = "jpg"
+
+DATASET_POSITIVE_ONE_HOT = np.array([0, 1])
+DATASET_NEGATIVE_ONE_HOT = np.array([1, 0])
 
 READERS_EXTENSIONS_DICT = {
     "txt": "txt",
@@ -1173,6 +1176,8 @@ class _Dataset_Maker(_TPA_File_Manager):
     def _write_nfo(self):
         filepath = os.path.join(self.dataset_destination_dir, TPA_NFO_FN)
         data = {MADE_OK_KEY: 1}
+        data["view_IDs"] = self.view_IDs
+        data["tpas_extension"] = self.tpas_extension
         with open(filepath, 'w') as f:
             json.dump(data, f)
 
@@ -1265,7 +1270,7 @@ class TPA_Dataset_Maker(_Dataset_Maker):
         self._log("[INFO] {} prefixes ignored out of initial {}".format(
             prefixes_ignored, prefixes2make_number0))
         if (prefixes_ignored == prefixes2make_number0):
-            self._log("[WARNING] All files ignored, dataset is empty.")
+            self._log("[WARNING] All files ignored, the dataset is empty.")
             self._log("FAILED")
             return False
         self._log("[INFO] Making dataset...")
@@ -1307,8 +1312,7 @@ class _TPA_RGB_Sample():
                 return False
         return True
 
-    
-    def read_rgb_timesteps(self, filepath : str):
+    def read_rgb_timesteps(self, filepath: str):
         """
         #TODO DOCS
         """
@@ -1342,17 +1346,19 @@ class _TPA_RGB_Sample():
             len(self._TPA_RGB_timestamps)
         duration = timestamps2frame_durations(ts)
         head, tail = os.path.split(self.TPA.filepaths[0])
-        fn = _TPA_get_file_prefix(tail) + "ID" + "-".join(self.TPA.ids) + "-RGB" + ".gif"
+        fn = _TPA_get_file_prefix(tail) + "ID" + \
+            "-".join(self.TPA.ids) + "-RGB" + ".gif"
         fp = os.path.join(head, fn)
         write_pc2gif(vis, fp, duration=duration)
 
 
 class RGB_Sample_from_filepaths():
-    def __init__(self, rgb_directory):      
+    def __init__(self, rgb_directory):
         if os.path.exists(os.path.join(rgb_directory, "timesteps.pkl")):
             with open(os.path.join(rgb_directory, 'timesteps.pkl'), 'rb') as f:
                 filepaths = pickle.load(f)
-            self.filepaths = [os.path.join(rgb_directory, fn) for fn in filepaths]
+            self.filepaths = [os.path.join(rgb_directory, fn)
+                              for fn in filepaths]
             self.timestamps = [float(remove_extension(
                 os.path.basename(fp)).replace("-", ".")) for fp in filepaths]
         else:
@@ -1376,6 +1382,10 @@ class TPA_RGB_Sample_from_filepaths(_TPA_RGB_Sample):
         TPA = TPA_Sample_from_filepaths(tpa_filepaths)
         RGB = RGB_Sample_from_filepaths(rgb_directory)
         _TPA_RGB_Sample.__init__(self, TPA, RGB)
+        if os.path.exists(os.path.join(rgb_directory, "label.txt")):
+            with open(os.path.join(rgb_directory, "label.txt"), "r") as f:
+                data = f.read()
+            self.label = int(data.strip())
 
     def get_header(self):
         return read_txt_header(self.TPA.filepaths[0])
@@ -1435,9 +1445,10 @@ class TPA_RGB_Sample_from_data(_TPA_RGB_Sample):
         because one frame can be repeated after alignment]
         '''
         with open(os.path.join(self.rgb_output_directory, 'timesteps.pkl'), 'wb') as f:
-            pickle.dump([os.path.basename(fp) for fp in self.RGB.filepaths], f)
+            pickle.dump([os.path.basename(fp) for fp in dst_filepaths], f)
         with open(os.path.join(self.rgb_output_directory, 'timesteps.txt'), 'w') as f:
-            f.write(str(["{}: {}".format(i, fp) for i, fp in enumerate(dst_filepaths)]))
+            f.write(str(["{}: {}".format(i, fp)
+                         for i, fp in enumerate(dst_filepaths)]))
 
     def align_timesteps(self, reset_T0=False):
         """
@@ -1657,16 +1668,18 @@ def _get_subject_from_header(header):
     '''
     return header.split(",")[0]
 
+
 def _get_label_from_json_file(prefix, json_filepath):
     with open(json_filepath) as f:
         data = json.load(f)
     return data[prefix]
 
+
 def _get_class_from_json_file(prefix, json_filepath):
     t = _get_label_from_json_file(prefix, json_filepath)
-    if (t>0):
+    if (t > 0):
         return 1
-    else: 
+    else:
         return 0
 
 
@@ -1732,11 +1745,13 @@ class TPA_RGB_Dataset_Maker(_Dataset_Maker):
         fps2output = []
         dirs2copy = []
         dirs2output = []
+        label_txt_dict = {}
         for prefix in prefixes2make:
             subject_name = _get_subject_from_header(read_txt_header(os.path.join(
                 self.processed_input_dir, prefix + "ID" + self.view_IDs[0] + "." + self.tpas_extension)))
             subject_name = re.sub('[^\w\-_\. ]', '_', subject_name)
-            label_class = 1 if (self._labels[prefix]>0) else 0 #1 > pos or 0 > neg 
+            # 1 > pos or 0 > neg
+            label_class = 1 if (self._labels[prefix] > 0) else 0
             fp_prefix = os.path.join(self.processed_input_dir, prefix)
             fp_o_prefix = os.path.join(
                 self.dataset_destination_dir, subject_name, str(label_class), prefix)
@@ -1754,12 +1769,14 @@ class TPA_RGB_Dataset_Maker(_Dataset_Maker):
             dirs2output.append(fp_o_rgb)
             fps2copy.append(fps)
             fps2output.append(fps_o)
+            label_txt_dict[os.path.join(
+                fp_o_rgb, "label.txt")] = self._labels[prefix]
         prefixes2make_number = len(set(prefixes2make))
         prefixes_ignored = prefixes2make_number0 - prefixes2make_number
         self._log("[INFO] {} prefixes ignored out of initial {}".format(
             prefixes_ignored, prefixes2make_number0))
         if (prefixes_ignored == prefixes2make_number0):
-            self._log("[WARNING] All files ignored, dataset is empty.")
+            self._log("[WARNING] All files ignored, the dataset is empty.")
             self._log("FAILED")
             return False
         self._log("[INFO] Making dataset...")
@@ -1773,8 +1790,141 @@ class TPA_RGB_Dataset_Maker(_Dataset_Maker):
             except FileExistsError:
                 shutil.rmtree(dst)
                 shutil.copytree(src, dst)
+        for fp in label_txt_dict.keys():
+            with open(fp, "w") as f:
+                f.write(str(label_txt_dict[fp]))
         self._log("Writing nfo, labels and json files...")
         self._write_nfo()
         self._copy_labels_file()
         self._log("OK")
         return True
+
+
+def _pad_repeat_frames(array, first_n, last_n):
+    def _pad_repeat_first_frame(array, n):
+        padding = np.repeat(array[0].copy()[None, :], n, axis=0)
+        return np.concatenate([padding, array], axis=0)
+    def _pad_repeat_last_frame(array, n):
+        padding = np.repeat(array[-1].copy()[None, :], n, axis=0)
+        return np.concatenate([array, padding], axis=0)
+    return _pad_repeat_first_frame(_pad_repeat_last_frame(array, last_n), first_n)
+
+
+def _crop_and_repeat_ts(ts, start, end, first_n, last_n):
+    array = np.array(ts)[start:end]
+    def _pad_repeat_first_frame(array, n):
+        padding = np.repeat(array[0].copy(), n, axis=0)
+        return np.concatenate([padding, array], axis=0)
+    def _pad_repeat_last_frame(array, n):
+        padding = np.repeat(array[-1].copy(), n, axis=0)
+        return np.concatenate([array, padding], axis=0)
+    return _pad_repeat_first_frame(_pad_repeat_last_frame(array, last_n), first_n)
+
+def convert_TXT2NPZ_TPA_RGB_Dataset(dataset_dir: str, frames: int, frame_shift: int = 0, output_dir: str = None):
+    '''
+    Convert TXT dataset made with TPA_RGB_Dataset_Maker to NPZ,
+    crop the recordings from array[:] to array[label-frames+frame_shift:label+frame_shift]
+    '''
+    assert (frame_shift >= 0)
+    assert (frames >= 0)
+    assert (frames-frame_shift > 0)
+    if not output_dir:
+        output_dir = dataset_dir + "_npz_f{}_fs{}".format(frames, frame_shift)
+    assert os.path.exists(dataset_dir)
+    with open(os.path.join(dataset_dir, TPA_NFO_FN)) as f:
+        data = json.load(f)
+    view_IDs = data["view_IDs"]
+    tpas_extension = data["tpas_extension"]
+    neg_fps = glob.glob(os.path.join(dataset_dir, "*", "0", "*ID*"))
+    pos_fps = glob.glob(os.path.join(dataset_dir, "*", "1", "*ID*"))
+    files = neg_fps + pos_fps
+    prefixes = list(set([_TPA_get_file_prefix(f) for f in files]))
+    cnt = collections.Counter([_TPA_get_file_prefix(f) for f in files])
+    fail = False
+    for prefix in prefixes:
+        if cnt[prefix] > (len(view_IDs) + 1):
+            print("Prefix {} reused many times in the dataset!".format(prefix))
+            fail = True
+    if fail:
+        return False
+    for prefix in prefixes:
+        for f in files:
+            if prefix in f:
+                sample_dir = os.path.split(f)[0]
+                continue
+        sample_fp_prefix = os.path.join(sample_dir, prefix)
+        sample_TPA_fps = [sample_fp_prefix+"ID"+view_id +
+                          "."+tpas_extension for view_id in view_IDs]
+        sample_RGB_fps = sample_fp_prefix+"ID"+"RGB"
+        sample = TPA_RGB_Sample_from_filepaths(sample_TPA_fps, sample_RGB_fps)
+        if (sample.label > 0):
+            sample_class = DATASET_POSITIVE_ONE_HOT
+            tpa_arrays = dict()
+            tpa_timestamps = dict()
+            old_label = sample.label
+            new_label = frames-frame_shift
+            old_length = len(sample.RGB.timestamps)
+            if (old_label - frames + frame_shift > 0):
+                start = old_label - frames + frame_shift
+                pad_first = 0
+            else:
+                start = 0
+                pad_first = -(old_label - frames + frame_shift)
+
+            if (old_length - old_label - frame_shift > 0):
+                end = old_label + frame_shift
+                pad_last = 0
+            else:
+                end = old_length
+                pad_last = -(old_length - old_label - frame_shift)
+            for view_id, tpa_array, tpa_ts in zip(sample.TPA.ids, sample.TPA.arrays, sample.TPA.timestamps):
+                tpa_arrays[view_id] = _pad_repeat_frames(
+                    tpa_array[start:end], pad_first, pad_last).astype(np.half)
+                tpa_timestamps[view_id] = _crop_and_repeat_ts(tpa_ts, start, end, pad_first, pad_last)
+            rgb_array = [cv2.imread(fp) for fp in sample.RGB.filepaths]
+            rgb_array = np.array(_pad_repeat_frames(
+                rgb_array[start:end], pad_first, pad_last)).astype(np.uint8)
+            rgb_timestamps = _crop_and_repeat_ts(sample.RGB.timestamps, start, end, pad_first, pad_last)
+            optional_kwargs = {"pad_first": pad_first, "pad_last":pad_last, "repeating_frames":True}
+            output_fp = os.path.join(output_dir, os.path.relpath(
+                sample_dir, dataset_dir), "{}.npz".format(prefix))
+            ensure_parent_exists(output_fp)
+            np.savez_compressed(output_fp, one_hot = sample_class, frames=frames, frame_shift=frame_shift, **{"array_ID{}".format(view_id): tpa_arrays[view_id] for view_id in sample.TPA.ids}, **{
+                                "timestamps_ID{}".format(view_id): tpa_timestamps[view_id] for view_id in sample.TPA.ids}, **{'array_IDRGB': rgb_array, 'timestamps_IDRGB': rgb_timestamps})
+        else:
+            sample_class = DATASET_NEGATIVE_ONE_HOT
+            assert False
+            tpa_arrays = dict()
+            tpa_timestamps = dict()
+            old_label = sample.label
+            new_label = frames-frame_shift
+            old_length = len(sample.RGB.timestamps)
+            if (old_label - frames + frame_shift > 0):
+                start = old_label - frames + frame_shift
+                pad_first = 0
+            else:
+                start = 0
+                pad_first = -(old_label - frames + frame_shift)
+
+            if (old_length - old_label - frame_shift > 0):
+                end = old_label + frame_shift
+                pad_last = 0
+            else:
+                end = old_length
+                pad_last = -(old_length - old_label - frame_shift)
+            for view_id, tpa_array, tpa_ts in zip(sample.TPA.ids, sample.TPA.arrays, sample.TPA.timestamps):
+                tpa_arrays[view_id] = _pad_repeat_frames(
+                    tpa_array[start:end], pad_first, pad_last).astype(np.half)
+                tpa_timestamps[view_id] = _crop_and_repeat_ts(tpa_ts, start, end, pad_first, pad_last)
+            rgb_array = [cv2.imread(fp) for fp in sample.RGB.filepaths]
+            rgb_array = np.array(_pad_repeat_frames(
+                rgb_array[start:end], pad_first, pad_last)).astype(np.uint8)
+            rgb_timestamps = _crop_and_repeat_ts(sample.RGB.timestamps, start, end, pad_first, pad_last)
+            optional_kwargs = {"pad_first": pad_first, "pad_last":pad_last, "repeating_frames":True}
+            #TODO EXTRACT PATCHES
+            #XXX not finished!!!
+            output_fp = os.path.join(output_dir, os.path.relpath(
+                sample_dir, dataset_dir), "{}.npz".format(prefix))
+            ensure_parent_exists(output_fp)
+            np.savez_compressed(output_fp, one_hot = sample_class, frames=frames, frame_shift=frame_shift, **{"array_ID{}".format(view_id): tpa_arrays[view_id] for view_id in sample.TPA.ids}, **{
+                                "timestamps_ID{}".format(view_id): tpa_timestamps[view_id] for view_id in sample.TPA.ids}, **{'array_IDRGB': rgb_array, 'timestamps_IDRGB': rgb_timestamps})
