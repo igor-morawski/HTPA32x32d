@@ -1434,6 +1434,8 @@ class TPA_RGB_Sample_from_data(_TPA_RGB_Sample):
         '''
         with open(os.path.join(self.rgb_output_directory, 'timesteps.pkl'), 'wb') as f:
             pickle.dump([os.path.basename(fp) for fp in self.RGB.filepaths], f)
+        with open(os.path.join(self.rgb_output_directory, 'timesteps.txt'), 'w') as f:
+            f.write(str(["{}: {}".format(i, fp) for i, fp in enumerate(self.RGB.filepaths)]))
 
     def align_timesteps(self, reset_T0=False):
         """
