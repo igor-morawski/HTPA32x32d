@@ -1297,9 +1297,9 @@ class Test_class_TPA_RGB_Dataset_Maker(unittest.TestCase):
             data = json.load(f)
             self.assertTrue(data[tools.MADE_OK_KEY])
         expected_fps = [os.path.join(dest, f) for f in fns]
-        expected_fns_test1 = [os.path.join(dest, "test1", f) for f in fns_test1]
+        expected_fns_test1 = [os.path.join(dest, "test1", "1", f) for f in fns_test1]
         self.assertEqual(
             set(glob.glob(os.path.join(dest, "*"))), set(expected_fps))
         self.assertEqual(
-            set(glob.glob(os.path.join(dest,"*","*"))), set(expected_fns_test1))
+            set(glob.glob(os.path.join(dest,"*", "*", "*"))), set(expected_fns_test1))
         shutil.rmtree(os.path.join(dest))

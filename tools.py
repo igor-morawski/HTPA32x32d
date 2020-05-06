@@ -1655,7 +1655,19 @@ def _get_subject_from_header(header):
     Gets subject from header formated as: "subject_name, (...)"
     #TODO DOCS
     '''
-    return header
+    return header.split(",")[0]
+
+def _get_label_from_json_file(prefix, json_filepath):
+    with open(json_filepath) as f:
+        data = json.load(f)
+    return data[prefix]
+
+def _get_class_from_json_file(prefix, json_filepath):
+    t = _get_label_from_json_file(prefix, json_filepath)
+    if (t>0):
+        return 1
+    else: 
+        return 0
 
 
 class TPA_RGB_Dataset_Maker(_Dataset_Maker):
@@ -1724,9 +1736,10 @@ class TPA_RGB_Dataset_Maker(_Dataset_Maker):
             subject_name = _get_subject_from_header(read_txt_header(os.path.join(
                 self.processed_input_dir, prefix + "ID" + self.view_IDs[0] + "." + self.tpas_extension)))
             subject_name = re.sub('[^\w\-_\. ]', '_', subject_name)
+            label_class = 1 if (self._labels[prefix]>0) else 0 #1 > pos or 0 > neg 
             fp_prefix = os.path.join(self.processed_input_dir, prefix)
             fp_o_prefix = os.path.join(
-                self.dataset_destination_dir, subject_name, prefix)
+                self.dataset_destination_dir, subject_name, str(label_class), prefix)
             ensure_parent_exists(fp_o_prefix)
             fps = []
             fps_o = []
