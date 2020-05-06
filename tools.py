@@ -1082,6 +1082,10 @@ class TPA_Preparer(_Preparer):
             msg = "Configure with config() first"
             self._log(msg)
             raise Exception(msg)
+        if not (self.raw_input_dir):
+            msg = "Destination directory filepath not specified"
+            self._log(msg)
+            raise ValueError(msg)
         ensure_path_exists(self.raw_input_dir)
         glob_patterns = [os.path.join(
             self.raw_input_dir, "*ID"+id+"."+self.tpas_extension) for id in self.view_IDs]
@@ -1205,6 +1209,10 @@ class TPA_Dataset_Maker(_Dataset_Maker):
             msg = "Configure with config() first"
             self._log(msg)
             raise Exception(msg)
+        if not (self.dataset_destination_dir):
+            msg = "Destination directory filepath not specified"
+            self._log(msg)
+            raise ValueError(msg)
         ensure_path_exists(self.dataset_destination_dir)
         glob_patterns = [os.path.join(
             self.processed_input_dir, "*ID"+id+"."+self.tpas_extension) for id in self.view_IDs]
@@ -1410,6 +1418,10 @@ class TPA_RGB_Sample_from_data(_TPA_RGB_Sample):
         assert self.TPA.filepaths
         assert self.rgb_output_directory
         self.TPA.write()
+        if not (self.rgb_output_directory):
+            msg = "Destination directory filepath not specified"
+            self._log(msg)
+            raise ValueError(msg)
         ensure_path_exists(self.rgb_output_directory)
         for src, timestamp in zip(self.RGB.filepaths, self.RGB.timestamps):
             new_fn = "{:.2f}".format(timestamp).replace(
@@ -1567,6 +1579,10 @@ class TPA_RGB_Preparer(_Preparer):
             msg = "Configure with config() first"
             self._log(msg)
             raise Exception(msg)
+        if not (self.raw_input_dir):
+            msg = "Destination directory filepath not specified"
+            self._log(msg)
+            raise ValueError(msg)
         ensure_path_exists(self.raw_input_dir)
         glob_patterns = [os.path.join(
             self.raw_input_dir, "*ID"+id+"."+self.tpas_extension) for id in self.view_IDs]
@@ -1656,6 +1672,10 @@ class TPA_RGB_Dataset_Maker(_Dataset_Maker):
             msg = "Configure with config() first"
             self._log(msg)
             raise Exception(msg)
+        if not (self.dataset_destination_dir):
+            msg = "Destination directory filepath not specified"
+            self._log(msg)
+            raise ValueError(msg)
         ensure_path_exists(self.dataset_destination_dir)
         glob_patterns = [os.path.join(
             self.processed_input_dir, "*ID"+id+"."+self.tpas_extension) for id in self.view_IDs]
