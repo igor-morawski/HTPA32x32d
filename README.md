@@ -12,6 +12,40 @@ This repo is developed for HTPA 32x32d but can be easily modifed to generalize t
 ## Learn more
 You can learn about the sensor more by visiting [Heimann Sensor's website](https://www.heimannsensor.com/products_imaging.php), or you can learn more about me and my research [on my website](https://igor-morawski.github.io/). You can also contact me on [LinkedIn](https://www.linkedin.com/in/igor-morawski/).
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# OLD README: 
 ## tools.py
 A collection of useful functions and data structures for working with data captured by Heimann HTPA32x32d and other thermopile sensor arrays. 
 
