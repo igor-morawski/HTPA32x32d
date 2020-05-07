@@ -8,26 +8,27 @@ import glob
 import pickle
 import shutil
 
-import tools
-import dataset
+from HTPA32x32d import tools
+from HTPA32x32d import dataset
 dataset.VERBOSE = True
 
-EXPECTED_TXT_FP = os.path.join("testing", "expected.TXT")
-EXPECTED_NP_FP = os.path.join("testing", "expected.npy")
-EXPECTED_CSV_FP = os.path.join("testing", "expected.csv")
-EXPECTED_PICKLE_FP = os.path.join("testing", "expected.pickle")
-TMP_PATH = os.path.join("testing", "TMP")
-TPA_DS_CONFIG = os.path.join("testing", "testing_config.json")
-TPA_PP_CONFIG = os.path.join("testing", "preparer.json")
-TPA_DS_CONFIG_MESSED = os.path.join("testing", "testing_config_messed.json")
+TESTING_DIR = os.path.join("tests", "testing")
+EXPECTED_TXT_FP = os.path.join(TESTING_DIR, "expected.TXT")
+EXPECTED_NP_FP = os.path.join(TESTING_DIR, "expected.npy")
+EXPECTED_CSV_FP = os.path.join(TESTING_DIR, "expected.csv")
+EXPECTED_PICKLE_FP = os.path.join(TESTING_DIR, "expected.pickle")
+TMP_PATH = os.path.join(TESTING_DIR, "TMP")
+TPA_DS_CONFIG = os.path.join(TESTING_DIR, "testing_config.json")
+TPA_PP_CONFIG = os.path.join(TESTING_DIR, "preparer.json")
+TPA_DS_CONFIG_MESSED = os.path.join(TESTING_DIR, "testing_config_messed.json")
 
 dataset.SYNCHRONIZATION_MAX_ERROR = 0.3
 
-MV_SAMPLE = [os.path.join("testing", fn) for fn in [
+MV_SAMPLE = [os.path.join(TESTING_DIR, fn) for fn in [
     "20200415_1438_ID121.TXT", "20200415_1438_ID122.TXT", "20200415_1438_ID123.TXT"]]
 
 
-MV_SAMPLE_MESSED = [os.path.join("testing", fn) for fn in [
+MV_SAMPLE_MESSED = [os.path.join(TESTING_DIR, fn) for fn in [
     "20200415_1438_ID121.TXT", "20200415_1438_ID122.TXT", "20200415_1438_ID123_MESSED.TXT"]]
 
 
@@ -173,9 +174,9 @@ class Testwrite_pc2gif(unittest.TestCase):
 
 class Test_headers_handling(unittest.TestCase):
     def test_read_txt_header(self):
-        fp = os.path.join("testing","20200415_1438_ID121.TXT")
+        fp = os.path.join(TESTING_DIR,"20200415_1438_ID121.TXT")
         self.assertEqual(tools.read_txt_header(fp), "test1")
-        fp = os.path.join("testing","expected.TXT")
+        fp = os.path.join(TESTING_DIR,"expected.TXT")
         self.assertEqual(tools.read_txt_header(fp), "ARRAYTYPE=10MBIT=12REFCAL=2T=Y")
 
     def write_txt_header(self):
@@ -860,26 +861,27 @@ class Test_class_Integration_TPA_Preparer_Dataset(unittest.TestCase):
 
 class RGB_Sample_from_filepaths(unittest.TestCase):
     def test_init(self):
-        sample_dir = os.path.join("testing", "20200415_1438_IDRGB")
+        sample_dir = os.path.join(TESTING_DIR, "20200415_1438_IDRGB")
         sample = dataset.RGB_Sample_from_filepaths(sample_dir)
         expected_timestamps = [1.52, 1.63, 1.75, 1.86, 1.99,
                                2.11, 2.22, 2.35, 2.46, 2.58, 2.69, 2.85, 2.97, 3.1]
-        expected_filepaths = ['testing/20200415_1438_IDRGB/1-52.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, 'testing/20200415_1438_IDRGB/1-63.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, 'testing/20200415_1438_IDRGB/1-75.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, 'testing/20200415_1438_IDRGB/1-86.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, 'testing/20200415_1438_IDRGB/1-99.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, 'testing/20200415_1438_IDRGB/2-11.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, 'testing/20200415_1438_IDRGB/2-22.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT,
-                              'testing/20200415_1438_IDRGB/2-35.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, 'testing/20200415_1438_IDRGB/2-46.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, 'testing/20200415_1438_IDRGB/2-58.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, 'testing/20200415_1438_IDRGB/2-69.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, 'testing/20200415_1438_IDRGB/2-85.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, 'testing/20200415_1438_IDRGB/2-97.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, 'testing/20200415_1438_IDRGB/3-10.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT]
+        expected_filepaths = [TESTING_DIR + os.path.sep + '20200415_1438_IDRGB/1-52.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, TESTING_DIR + os.path.sep + '20200415_1438_IDRGB/1-63.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, TESTING_DIR + os.path.sep + '20200415_1438_IDRGB/1-75.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, TESTING_DIR + os.path.sep + '20200415_1438_IDRGB/1-86.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, TESTING_DIR + os.path.sep + '20200415_1438_IDRGB/1-99.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, TESTING_DIR + os.path.sep + '20200415_1438_IDRGB/2-11.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, TESTING_DIR + os.path.sep + '20200415_1438_IDRGB/2-22.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT,
+                              TESTING_DIR + os.path.sep + '20200415_1438_IDRGB/2-35.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, TESTING_DIR + os.path.sep + '20200415_1438_IDRGB/2-46.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, TESTING_DIR + os.path.sep + '20200415_1438_IDRGB/2-58.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, TESTING_DIR + os.path.sep + '20200415_1438_IDRGB/2-69.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, TESTING_DIR + os.path.sep + '20200415_1438_IDRGB/2-85.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, TESTING_DIR + os.path.sep + '20200415_1438_IDRGB/2-97.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, TESTING_DIR + os.path.sep + '20200415_1438_IDRGB/3-10.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT]
         self.assertEqual(expected_timestamps, sample.timestamps)
         self.assertEqual(expected_filepaths, sample.filepaths)
 
 
 class Test_class_TPA_RGB_Sample_from_filepaths(unittest.TestCase):
     def test_init(self):
-        rgb_dir = os.path.join("testing", "20200415_1438_IDRGB")
+        self.maxDiff = None
+        rgb_dir = os.path.join(TESTING_DIR, "20200415_1438_IDRGB")
         sample = dataset.TPA_RGB_Sample_from_filepaths(MV_SAMPLE, rgb_dir)
         self.assertTrue(sample.TPA)
         self.assertTrue(sample.RGB)
         expected_rgb_timestamps = [1.52, 1.63, 1.75, 1.86, 1.99,
                                    2.11, 2.22, 2.35, 2.46, 2.58, 2.69, 2.85, 2.97, 3.1]
-        expected_rgb_filepaths = ['testing/20200415_1438_IDRGB/1-52.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, 'testing/20200415_1438_IDRGB/1-63.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, 'testing/20200415_1438_IDRGB/1-75.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, 'testing/20200415_1438_IDRGB/1-86.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, 'testing/20200415_1438_IDRGB/1-99.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, 'testing/20200415_1438_IDRGB/2-11.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, 'testing/20200415_1438_IDRGB/2-22.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT,
-                                  'testing/20200415_1438_IDRGB/2-35.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, 'testing/20200415_1438_IDRGB/2-46.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, 'testing/20200415_1438_IDRGB/2-58.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, 'testing/20200415_1438_IDRGB/2-69.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, 'testing/20200415_1438_IDRGB/2-85.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, 'testing/20200415_1438_IDRGB/2-97.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, 'testing/20200415_1438_IDRGB/3-10.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT]
+        expected_rgb_filepaths = [TESTING_DIR + os.path.sep + '20200415_1438_IDRGB/1-52.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, TESTING_DIR + os.path.sep + '20200415_1438_IDRGB/1-63.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, TESTING_DIR + os.path.sep + '20200415_1438_IDRGB/1-75.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, TESTING_DIR + os.path.sep + '20200415_1438_IDRGB/1-86.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, TESTING_DIR + os.path.sep + '20200415_1438_IDRGB/1-99.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, TESTING_DIR + os.path.sep + '20200415_1438_IDRGB/2-11.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, TESTING_DIR + os.path.sep + '20200415_1438_IDRGB/2-22.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT,
+                                  TESTING_DIR + os.path.sep + '20200415_1438_IDRGB/2-35.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, TESTING_DIR + os.path.sep + '20200415_1438_IDRGB/2-46.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, TESTING_DIR + os.path.sep + '20200415_1438_IDRGB/2-58.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, TESTING_DIR + os.path.sep + '20200415_1438_IDRGB/2-69.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, TESTING_DIR + os.path.sep + '20200415_1438_IDRGB/2-85.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, TESTING_DIR + os.path.sep + '20200415_1438_IDRGB/2-97.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, TESTING_DIR + os.path.sep + '20200415_1438_IDRGB/3-10.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT]
         self.assertEqual(expected_rgb_timestamps, sample.RGB.timestamps)
         self.assertEqual(expected_rgb_filepaths, sample.RGB.filepaths)
         expected_samples = [tools.read_tpa_file(fp) for fp in MV_SAMPLE]
@@ -898,27 +900,27 @@ class Test_class_TPA_RGB_Sample_from_filepaths(unittest.TestCase):
          for expected_ts, ts in zip(expected_timestamps, sample.TPA.timestamps)]
 
     def test_test_alignment(self):
-        rgb_dir = os.path.join("testing", "20200415_1438_IDRGB")
+        rgb_dir = os.path.join(TESTING_DIR, "20200415_1438_IDRGB")
         sample = dataset.TPA_RGB_Sample_from_filepaths(MV_SAMPLE, rgb_dir)
         self.assertTrue(sample.test_alignment())
-        rgb_dir = os.path.join("testing", "20200415_1438_IDRGB")
+        rgb_dir = os.path.join(TESTING_DIR, "20200415_1438_IDRGB")
         sample = dataset.TPA_RGB_Sample_from_filepaths(MV_SAMPLE, rgb_dir)
         sample.RGB.timestamps.append(6.7)
         self.assertFalse(sample.test_alignment())
 
     def test_test_synchronization(self):
-        rgb_dir = os.path.join("testing", "20200415_1438_IDRGB")
+        rgb_dir = os.path.join(TESTING_DIR, "20200415_1438_IDRGB")
         sample = dataset.TPA_RGB_Sample_from_filepaths(MV_SAMPLE, rgb_dir)
         self.assertTrue(sample.test_synchronization(max_error=0.5))
         self.assertFalse(sample.test_synchronization(max_error=-1))
 
     def test_get_header(self):
-        rgb_dir = os.path.join("testing", "20200415_1438_IDRGB")
+        rgb_dir = os.path.join(TESTING_DIR, "20200415_1438_IDRGB")
         sample = dataset.TPA_RGB_Sample_from_filepaths(MV_SAMPLE, rgb_dir)
         self.assertEqual(sample.get_header(), "test1")
 class Test_TPA_RGB_Sample_from_data(unittest.TestCase):
     def test_default_init(self):
-        rgb_dir = os.path.join("testing", "20200415_1438_IDRGB")
+        rgb_dir = os.path.join(TESTING_DIR, "20200415_1438_IDRGB")
         array0, ts0 = tools.txt2np(MV_SAMPLE[0])
         array1, ts1 = tools.txt2np(MV_SAMPLE[1])
         array2, ts2 = tools.txt2np(MV_SAMPLE[2])
@@ -928,7 +930,7 @@ class Test_TPA_RGB_Sample_from_data(unittest.TestCase):
         dataset.TPA_RGB_Sample_from_data(arrays, timestamps, ids, rgb_dir)
 
     def test_test_synchronization(self):
-        rgb_dir = os.path.join("testing", "20200415_1438_IDRGB")
+        rgb_dir = os.path.join(TESTING_DIR, "20200415_1438_IDRGB")
         s = dataset.TPA_Sample_from_filepaths(MV_SAMPLE)
         arrays, timestamps, ids = s.arrays, s.timestamps, s.ids
         sample = dataset.TPA_RGB_Sample_from_data(
@@ -938,7 +940,7 @@ class Test_TPA_RGB_Sample_from_data(unittest.TestCase):
         self.assertFalse(sample.test_synchronization(max_error=-1))
 
     def test_test_alignment(self):
-        rgb_dir = os.path.join("testing", "20200415_1438_IDRGB")
+        rgb_dir = os.path.join(TESTING_DIR, "20200415_1438_IDRGB")
         s_m = dataset.TPA_Sample_from_filepaths(MV_SAMPLE_MESSED)
         arrays, timestamps, ids = s_m.arrays, s_m.timestamps, s_m.ids
         sample_messed = dataset.TPA_RGB_Sample_from_data(
@@ -951,7 +953,7 @@ class Test_TPA_RGB_Sample_from_data(unittest.TestCase):
         self.assertTrue(sample.test_alignment())
 
     def test_align_timesteps(self):
-        rgb_dir = os.path.join("testing", "20200415_1438_IDRGB")
+        rgb_dir = os.path.join(TESTING_DIR, "20200415_1438_IDRGB")
         s = dataset.TPA_Sample_from_filepaths(MV_SAMPLE_MESSED)
         a, t, i = s.arrays, s.timestamps, s.ids
         sample = dataset.TPA_RGB_Sample_from_data(a, t, i, rgb_dir)
@@ -990,12 +992,12 @@ class Test_TPA_RGB_Sample_from_data(unittest.TestCase):
                                  1.99, 1.99, 2.22, 2.35, 2.46, 2.58, 2.85]
         self.assertNotEqual(sample.RGB.timestamps, random_rgb_timestamps)
         self.assertEqual(len(sample.RGB.timestamps), len(sample.RGB.filepaths))
-        expected_rgb_filepaths = ['testing/20200415_1438_IDRGB/1-52.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, 'testing/20200415_1438_IDRGB/1-63.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, 'testing/20200415_1438_IDRGB/1-75.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, 'testing/20200415_1438_IDRGB/1-99.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, 'testing/20200415_1438_IDRGB/1-99.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, 'testing/20200415_1438_IDRGB/2-22.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, 
-                                  'testing/20200415_1438_IDRGB/2-35.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, 'testing/20200415_1438_IDRGB/2-46.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, 'testing/20200415_1438_IDRGB/2-58.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, 'testing/20200415_1438_IDRGB/2-85.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT]
+        expected_rgb_filepaths = [TESTING_DIR + os.path.sep + '20200415_1438_IDRGB/1-52.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, TESTING_DIR + os.path.sep + '20200415_1438_IDRGB/1-63.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, TESTING_DIR + os.path.sep + '20200415_1438_IDRGB/1-75.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, TESTING_DIR + os.path.sep + '20200415_1438_IDRGB/1-99.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, TESTING_DIR + os.path.sep + '20200415_1438_IDRGB/1-99.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, TESTING_DIR + os.path.sep + '20200415_1438_IDRGB/2-22.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, 
+                                  TESTING_DIR + os.path.sep + '20200415_1438_IDRGB/2-35.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, TESTING_DIR + os.path.sep + '20200415_1438_IDRGB/2-46.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, TESTING_DIR + os.path.sep + '20200415_1438_IDRGB/2-58.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, TESTING_DIR + os.path.sep + '20200415_1438_IDRGB/2-85.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT]
         self.assertEqual(expected_rgb_filepaths, sample.RGB.filepaths)
 
     def test_reset_T0_align_timesteps(self):
-        rgb_dir = os.path.join("testing", "20200415_1438_IDRGB")
+        rgb_dir = os.path.join(TESTING_DIR, "20200415_1438_IDRGB")
         s = dataset.TPA_Sample_from_filepaths(MV_SAMPLE_MESSED)
         a, t, i = s.arrays, s.timestamps, s.ids
         sample = dataset.TPA_RGB_Sample_from_data(a, t, i, rgb_dir)
@@ -1021,12 +1023,12 @@ class Test_TPA_RGB_Sample_from_data(unittest.TestCase):
                                    1.99, 1.99, 2.22, 2.35, 2.46, 2.58, 2.85]
         expected_rgb_timestamps = [t-1.50 for t in expected_rgb_timestamps]
         self.assertEqual(sample.RGB.timestamps, expected_rgb_timestamps)
-        expected_rgb_filepaths = ['testing/20200415_1438_IDRGB/1-52.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, 'testing/20200415_1438_IDRGB/1-63.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, 'testing/20200415_1438_IDRGB/1-75.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, 'testing/20200415_1438_IDRGB/1-99.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, 'testing/20200415_1438_IDRGB/1-99.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, 'testing/20200415_1438_IDRGB/2-22.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, 
-                                  'testing/20200415_1438_IDRGB/2-35.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, 'testing/20200415_1438_IDRGB/2-46.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, 'testing/20200415_1438_IDRGB/2-58.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, 'testing/20200415_1438_IDRGB/2-85.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT]
+        expected_rgb_filepaths = [TESTING_DIR + os.path.sep + '20200415_1438_IDRGB/1-52.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, TESTING_DIR + os.path.sep + '20200415_1438_IDRGB/1-63.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, TESTING_DIR + os.path.sep + '20200415_1438_IDRGB/1-75.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, TESTING_DIR + os.path.sep + '20200415_1438_IDRGB/1-99.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, TESTING_DIR + os.path.sep + '20200415_1438_IDRGB/1-99.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, TESTING_DIR + os.path.sep + '20200415_1438_IDRGB/2-22.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, 
+                                  TESTING_DIR + os.path.sep + '20200415_1438_IDRGB/2-35.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, TESTING_DIR + os.path.sep + '20200415_1438_IDRGB/2-46.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, TESTING_DIR + os.path.sep + '20200415_1438_IDRGB/2-58.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT, TESTING_DIR + os.path.sep + '20200415_1438_IDRGB/2-85.' + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT]
         self.assertEqual(expected_rgb_filepaths, sample.RGB.filepaths)
 
     def test_write(self):
-        rgb_dir = os.path.join("testing", "20200415_1438_IDRGB")
+        rgb_dir = os.path.join(TESTING_DIR, "20200415_1438_IDRGB")
         s = dataset.TPA_Sample_from_filepaths(MV_SAMPLE)
         a, t, i = s.arrays, s.timestamps, s.ids
         expected_tpa_fps = [os.path.join(
@@ -1051,7 +1053,7 @@ class Test_TPA_RGB_Sample_from_data(unittest.TestCase):
         _cleanup(set(expected_rgb_filepaths + expected_tpa_fps + [os.path.join(TMP_PATH, '20200415_1438_IDRGB')]))
 
     def test_align_and_write(self):
-        rgb_dir = os.path.join("testing", "20200415_1438_IDRGB")
+        rgb_dir = os.path.join(TESTING_DIR, "20200415_1438_IDRGB")
         s = dataset.TPA_Sample_from_filepaths(MV_SAMPLE_MESSED)
         a, t, i = s.arrays, s.timestamps, s.ids
         expected_tpa_fps = [os.path.join(
@@ -1080,7 +1082,7 @@ class Test_TPA_RGB_Sample_from_data(unittest.TestCase):
         _cleanup(set(expected_rgb_filepaths + expected_tpa_fps + [os.path.join(TMP_PATH, '20200415_1438_IDRGB')]))
 
     def test_write_header(self):
-        rgb_dir = os.path.join("testing", "20200415_1438_IDRGB")
+        rgb_dir = os.path.join(TESTING_DIR, "20200415_1438_IDRGB")
         s = dataset.TPA_Sample_from_filepaths(MV_SAMPLE)
         a, t, i = s.arrays, s.timestamps, s.ids
         expected_tpa_fps = [os.path.join(
@@ -1103,12 +1105,12 @@ class Test_TPA_RGB_Sample_from_data(unittest.TestCase):
         [self.assertTrue(np.array_equal(result, expected))
          for result, expected in zip(s_o.timestamps, s.timestamps)]
         _cleanup(set(expected_rgb_filepaths + expected_tpa_fps + [os.path.join(TMP_PATH, '20200415_1438_IDRGB')]))
-        rgb_dir = os.path.join("testing", "20200415_1438_IDRGB")
+        rgb_dir = os.path.join(TESTING_DIR, "20200415_1438_IDRGB")
         sample = dataset.TPA_RGB_Sample_from_filepaths(MV_SAMPLE, rgb_dir)
 
 class Test_Integration_TPA_RGB_Sample_from_data_and_filepaths(unittest.TestCase):
     def test_data2filepaths(self):
-        rgb_dir = os.path.join("testing", "20200415_1438_IDRGB")
+        rgb_dir = os.path.join(TESTING_DIR, "20200415_1438_IDRGB")
         s = dataset.TPA_Sample_from_filepaths(MV_SAMPLE)
         a, t, i = s.arrays, s.timestamps, s.ids
         expected_tpa_fps = [os.path.join(
@@ -1135,7 +1137,7 @@ class Test_Integration_TPA_RGB_Sample_from_data_and_filepaths(unittest.TestCase)
         self.assertEqual(sample_rgb_fns, sample2_rgb_fns)
         _cleanup(set(expected_rgb_filepaths + expected_tpa_fps + [os.path.join(TMP_PATH, '20200415_1438_IDRGB')]))
     def test_data_align_filepaths(self):
-        rgb_dir = os.path.join("testing", "20200415_1438_IDRGB")
+        rgb_dir = os.path.join(TESTING_DIR, "20200415_1438_IDRGB")
         s = dataset.TPA_Sample_from_filepaths(MV_SAMPLE_MESSED)
         a, t, i = s.arrays, s.timestamps, s.ids
         expected_tpa_fps = [os.path.join(
@@ -1166,7 +1168,7 @@ class Test_Integration_TPA_RGB_Sample_from_data_and_filepaths(unittest.TestCase)
         
 class Test_unpack_calib_pkl(unittest.TestCase):
     def test_result(self):
-        pkl_fp = os.path.join('testing', 'testing_TPA_source', 'calib.pkl')
+        pkl_fp = os.path.join(TESTING_DIR, 'testing_TPA_source', 'calib.pkl')
         with open(pkl_fp, 'rb') as f:
             pkl = pickle.load(f)
         expected_mtx = pkl['mtx']
@@ -1185,12 +1187,12 @@ class Test_unpack_calib_pkl(unittest.TestCase):
         
 class Test_class_Undistorter(unittest.TestCase):
     def test_default_init(self):
-        pkl_fp = os.path.join('testing', 'testing_TPA_source', 'calib.pkl')
+        pkl_fp = os.path.join(TESTING_DIR, 'testing_TPA_source', 'calib.pkl')
         mtx, dist, width, height, unparsed = dataset._unpack_calib_pkl(pkl_fp)
         undist = dataset._Undistorter(mtx, dist, width, height)
     
     def test_undistort(self):
-        pkl_fp = os.path.join('testing', 'testing_TPA_source', 'calib.pkl')
+        pkl_fp = os.path.join(TESTING_DIR, 'testing_TPA_source', 'calib.pkl')
         mtx, dist, width, height, unparsed = dataset._unpack_calib_pkl(pkl_fp)
         undist = dataset._Undistorter(mtx, dist, width, height)
         img = (np.random.rand(width*height*3).reshape([height, width, 3])*255).astype(np.uint8)

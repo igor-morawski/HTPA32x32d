@@ -1,15 +1,15 @@
 {
-    "processed_destination_dir": "testing/TPA_processed",
+    "processed_destination_dir": "tests/testing/TPA_processed",
     "view_IDs": [
         "121",
         "122",
         "123"
     ],
-    "raw_input_dir": "testing/testing_TPA_source",
+    "raw_input_dir": "tests/testing/testing_TPA_source",
     "tpas_extension": "TXT",
     "output_extension": ".pickle",
     "MAKE": 0,
     "PREPARE": 1,
     "UNDISTORT": 0,
-    "calib_fp": "testing/testing_TPA_source/calib.pkl"
+    "calib_fp": "tests/testing/testing_TPA_source/calib.pkl"
 }

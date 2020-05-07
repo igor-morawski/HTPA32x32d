@@ -1,0 +1,13 @@
+{
+    "dataset_destination_dir": "tests/testing/TPA_dataset", 
+    "view_IDs": [
+        "121",
+        "122",
+        "123"
+    ],
+    "processed_input_dir" : "tests/testing/testing_TPA_source",
+    "tpas_extension": "TXT",
+    "labels_filepath": "tests/testing/testing_labels.json", 
+    "MAKE":1,
+    "PREPARE":0
+}
