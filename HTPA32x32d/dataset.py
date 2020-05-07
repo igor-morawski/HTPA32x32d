@@ -1108,6 +1108,7 @@ def _pad_repeat_frames(array, first_n, last_n):
     def _pad_repeat_first_frame(array, n):
         padding = np.repeat(array[0].copy()[None, :], n, axis=0)
         return np.concatenate([padding, array], axis=0)
+
     def _pad_repeat_last_frame(array, n):
         padding = np.repeat(array[-1].copy()[None, :], n, axis=0)
         return np.concatenate([array, padding], axis=0)
@@ -1116,13 +1117,18 @@ def _pad_repeat_frames(array, first_n, last_n):
 
 def _crop_and_repeat_ts(ts, start, end, first_n, last_n):
     array = np.array(ts)[start:end]
+
     def _pad_repeat_first_frame(array, n):
         padding = np.repeat(array[0].copy(), n, axis=0)
         return np.concatenate([padding, array], axis=0)
+
     def _pad_repeat_last_frame(array, n):
         padding = np.repeat(array[-1].copy(), n, axis=0)
         return np.concatenate([array, padding], axis=0)
     return _pad_repeat_first_frame(_pad_repeat_last_frame(array, last_n), first_n)
+
+def _avg_ts(timestamp_list):
+    return np.sum(timestamp_list, axis=0)/len(timestamp_list)
 
 def convert_TXT2NPZ_TPA_RGB_Dataset(dataset_dir: str, frames: int, frame_shift: int = 0, output_dir: str = None):
     '''
@@ -1184,51 +1190,64 @@ def convert_TXT2NPZ_TPA_RGB_Dataset(dataset_dir: str, frames: int, frame_shift: 
             for view_id, tpa_array, tpa_ts in zip(sample.TPA.ids, sample.TPA.arrays, sample.TPA.timestamps):
                 tpa_arrays[view_id] = _pad_repeat_frames(
                     tpa_array[start:end], pad_first, pad_last).astype(np.half)
-                tpa_timestamps[view_id] = _crop_and_repeat_ts(tpa_ts, start, end, pad_first, pad_last)
+                tpa_timestamps[view_id] = _crop_and_repeat_ts(
+                    tpa_ts, start, end, pad_first, pad_last)
             rgb_array = [cv2.imread(fp) for fp in sample.RGB.filepaths]
             rgb_array = np.array(_pad_repeat_frames(
                 rgb_array[start:end], pad_first, pad_last)).astype(np.uint8)
-            rgb_timestamps = _crop_and_repeat_ts(sample.RGB.timestamps, start, end, pad_first, pad_last)
-            optional_kwargs = {"pad_first": pad_first, "pad_last":pad_last, "repeating_frames":True}
+            rgb_timestamps = _crop_and_repeat_ts(
+                sample.RGB.timestamps, start, end, pad_first, pad_last)
+            tpa_avg_timestamps = _avg_ts(list(tpa_timestamps.values()))
+            tpa_rgb_avg_timestamps = _avg_ts(list(tpa_timestamps.values()) + [rgb_timestamps])
+            optional_kwargs = {"pad_first": pad_first,
+                               "pad_last": pad_last, "repeating_frames": True}
             output_fp = os.path.join(output_dir, os.path.relpath(
                 sample_dir, dataset_dir), "{}.npz".format(prefix))
             tools.ensure_parent_exists(output_fp)
-            np.savez_compressed(output_fp, one_hot = sample_class, frames=frames, frame_shift=frame_shift, **{"array_ID{}".format(view_id): tpa_arrays[view_id] for view_id in sample.TPA.ids}, **{
+            np.savez_compressed(output_fp, one_hot=sample_class, frames=frames, frame_shift=frame_shift, tpa_avg_timestamps=tpa_avg_timestamps, tpa_rgb_avg_timestamps=tpa_rgb_avg_timestamps,  **optional_kwargs, **{"array_ID{}".format(view_id): tpa_arrays[view_id] for view_id in sample.TPA.ids}, **{
                                 "timestamps_ID{}".format(view_id): tpa_timestamps[view_id] for view_id in sample.TPA.ids}, **{'array_IDRGB': rgb_array, 'timestamps_IDRGB': rgb_timestamps})
-        else:
+        if (sample.label <= 0):
             sample_class = DATASET_NEGATIVE_ONE_HOT
-            assert False
             tpa_arrays = dict()
             tpa_timestamps = dict()
-            old_label = sample.label
-            new_label = frames-frame_shift
             old_length = len(sample.RGB.timestamps)
-            if (old_label - frames + frame_shift > 0):
-                start = old_label - frames + frame_shift
+            if (old_length - frames > 0):
+                start = 0
                 pad_first = 0
             else:
                 start = 0
-                pad_first = -(old_label - frames + frame_shift)
-
-            if (old_length - old_label - frame_shift > 0):
-                end = old_label + frame_shift
-                pad_last = 0
-            else:
-                end = old_length
-                pad_last = -(old_length - old_label - frame_shift)
+                pad_first = -(old_length - frames)
+            end = frames
+            pad_last = 0
             for view_id, tpa_array, tpa_ts in zip(sample.TPA.ids, sample.TPA.arrays, sample.TPA.timestamps):
                 tpa_arrays[view_id] = _pad_repeat_frames(
                     tpa_array[start:end], pad_first, pad_last).astype(np.half)
-                tpa_timestamps[view_id] = _crop_and_repeat_ts(tpa_ts, start, end, pad_first, pad_last)
+                tpa_timestamps[view_id] = _crop_and_repeat_ts(
+                    tpa_ts, start, end, pad_first, pad_last)
             rgb_array = [cv2.imread(fp) for fp in sample.RGB.filepaths]
             rgb_array = np.array(_pad_repeat_frames(
                 rgb_array[start:end], pad_first, pad_last)).astype(np.uint8)
-            rgb_timestamps = _crop_and_repeat_ts(sample.RGB.timestamps, start, end, pad_first, pad_last)
-            optional_kwargs = {"pad_first": pad_first, "pad_last":pad_last, "repeating_frames":True}
-            #TODO EXTRACT PATCHES
-            #XXX not finished!!!
-            output_fp = os.path.join(output_dir, os.path.relpath(
-                sample_dir, dataset_dir), "{}.npz".format(prefix))
-            tools.ensure_parent_exists(output_fp)
-            np.savez_compressed(output_fp, one_hot = sample_class, frames=frames, frame_shift=frame_shift, **{"array_ID{}".format(view_id): tpa_arrays[view_id] for view_id in sample.TPA.ids}, **{
-                                "timestamps_ID{}".format(view_id): tpa_timestamps[view_id] for view_id in sample.TPA.ids}, **{'array_IDRGB': rgb_array, 'timestamps_IDRGB': rgb_timestamps})
+            rgb_timestamps = _crop_and_repeat_ts(
+                sample.RGB.timestamps, start, end, pad_first, pad_last)
+            # sliding window
+            patches_n = old_length//frames
+            rgb_patches = [rgb_array[i*frames:(i+1)*frames]
+                           for i in range(patches_n)]
+            tpa_patches = [{view_id: tpa_arrays[view_id][i*frames:(
+                i+1)*frames] for view_id in sample.TPA.ids} for i in range(patches_n)]
+            rgb_timestamps_patches = [_crop_and_repeat_ts(
+                rgb_timestamps, i*frames, (i+1)*frames, 0, 0) for i in range(patches_n)]
+            tpa_timestamps_patches = [{view_id: _crop_and_repeat_ts(
+                tpa_timestamps[view_id], i*frames, (i+1)*frames, 0, 0) for view_id in sample.TPA.ids} for i in range(patches_n)]
+            for i, (tpa_patch, rgb_patch, tpa_ts, rgb_ts) in enumerate(zip(tpa_patches, rgb_patches, tpa_timestamps_patches, rgb_timestamps_patches)):  
+                tpa_avg_timestamps = _avg_ts(list(tpa_ts.values()))
+                tpa_rgb_avg_timestamps = _avg_ts(list(tpa_ts.values()) + [rgb_ts])
+                output_fp = os.path.join(output_dir, os.path.relpath(
+                    sample_dir, dataset_dir), "patch{}_{}.npz".format(i, prefix))
+                tools.ensure_parent_exists(output_fp)
+                optional_kwargs = {"pad_first": pad_first if (i == 0) else int(0), "pad_last": int(0), "repeating_frames": True if (i == 0) else False}
+                np.savez_compressed(output_fp, one_hot=sample_class, frames=frames, frame_shift=0, tpa_avg_timestamps=tpa_avg_timestamps, tpa_rgb_avg_timestamps=tpa_rgb_avg_timestamps, **optional_kwargs, **{"array_ID{}".format(view_id): tpa_patch[view_id] for view_id in sample.TPA.ids}, **{
+                                    "timestamps_ID{}".format(view_id): tpa_ts[view_id] for view_id in sample.TPA.ids}, **{'array_IDRGB': rgb_patch, 'timestamps_IDRGB': rgb_ts})
+    data = {"repeating_frames": True, "frame_shift" : frame_shift, "frames" : frames, "view_IDs" : view_IDs}
+    with open(os.path.join(output_dir, "samples.nfo"), 'w') as f:
+        json.dump(data, f)
