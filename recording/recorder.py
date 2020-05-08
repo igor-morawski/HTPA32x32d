@@ -11,6 +11,7 @@ import datetime
 import signal
 from pathlib import Path
 import struct
+import argparse
 
 import HTPA32x32d.communication
 import HTPA32x32d.tools
@@ -52,6 +53,12 @@ def query_yes_no(question, default="yes"):
 
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--header", help="Header to write to recorded TXTs, optional",
+                    type=str, default=None)
+    parser.add_argument("--dest", help="Destination directory (path)",
+                    type=str, default=".")
+    args = parser.parse_args()
     signal.signal(signal.SIGTERM, HTPA32x32d.communication.service_shutdown)
     signal.signal(signal.SIGINT, HTPA32x32d.communication.service_shutdown)
     print('Starting main program (TPA + RGB recorder)')
@@ -76,7 +83,7 @@ def main():
         for ip in ips:
             devices.append(HTPA32x32d.communication.Device(ip))
         # dir and fn
-        directory_path = global_T0_YYYYMMDD
+        directory_path = os.path.join(args.dest, global_T0_YYYYMMDD)
         Path(directory_path).mkdir(parents=True, exist_ok=True)
         rgb_path = os.path.join(directory_path,"{}_ID{}".format(global_T0_YYYYMMDD_HHMM, "RGB"))
         Path(rgb_path).mkdir(parents=True, exist_ok=True)
@@ -86,7 +93,7 @@ def main():
             fn = "{}_ID{}.TXT".format(
                 global_T0_YYYYMMDD_HHMM, device.ip.split(".")[-1])
             fp = os.path.join(directory_path, fn)
-            recorders.append(HTPA32x32d.communication.Recorder(device, fp, global_T0))
+            recorders.append(HTPA32x32d.communication.Recorder(device, fp, global_T0, header=args.header))
         try:
             webcam.start()
             for recorder in recorders:

@@ -98,7 +98,7 @@ class Device:
         self.address = (self.ip, self.port)
 
 class Recorder(threading.Thread):
-    def __init__(self, device, fp, T0):
+    def __init__(self, device, fp, T0, header=None):
         threading.Thread.__init__(self)
         self.shutdown_flag = threading.Event()
         self.device = device
@@ -125,9 +125,12 @@ class Recorder(threading.Thread):
             self.sock.close()
             print("Failed to bind HTPA %s while initializing" % self.device.ip)
             raise ServiceExit
-
+        if not header:
+            header2write = 'HTPA32x32d\n'
+        else:
+            header2write = str(header).rstrip('\n')+('\n')
         with open(self.fp, 'w') as file:
-            file.write('HTPA32x32d\n')
+            file.write(header2write)
 
     def run(self):
         print('Thread [TPA] #%s started' % self.ident)
