@@ -482,7 +482,7 @@ def crop_center(array, crop_height, crop_width):
     Parameters
     ---------
     array : np.array
-        (frames, height, width)
+        (frames, height, width) or (frames, height, width, channel)
     crop_height : int
         height of the cropped patch, if -1 then equal to input's height
     crop_width : int
@@ -493,7 +493,7 @@ def crop_center(array, crop_height, crop_width):
     np.array
         cropped array (frames, crop_height, crop_width)
     """
-    _, height, width = array.shape
+    _, height, width = array.shape[:3]
     crop_height = height if (crop_height == -1) else crop_height
     start_y = height//2 - crop_height//2
     crop_width = width if (crop_width == -1) else crop_width

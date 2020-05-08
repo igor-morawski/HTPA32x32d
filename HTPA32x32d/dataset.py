@@ -624,7 +624,7 @@ class _TPA_RGB_Sample():
             result = pickle.load(f)
         return result
 
-    def write_gif(self):  # XXX FINISH, TEST
+    def write_gif(self):  
         """
         Writes visualization gif to same directory as in self.filepaths,
         the filename follows the template: FILE_PREFIX_ID{id1}-{id2}-...-{idn}.gif
@@ -716,7 +716,7 @@ class TPA_RGB_Sample_from_data(_TPA_RGB_Sample):
     RGB is from filepaths
     """
 
-    def __init__(self, tpa_arrays, tpa_timestamps, tpa_ids, rgb_directory, tpa_output_filepaths=None, rgb_output_directory=None, header=None):
+    def __init__(self, tpa_arrays, tpa_timestamps, tpa_ids, rgb_directory, tpa_output_filepaths=None, rgb_output_directory=None, header=None, crop_to_center=True):
         TPA = TPA_Sample_from_data(
             tpa_arrays, tpa_timestamps, tpa_ids, tpa_output_filepaths, header=header)
         RGB = RGB_Sample_from_filepaths(rgb_directory)
