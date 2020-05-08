@@ -474,7 +474,7 @@ def reshape_flattened_frames(array):
     return array.reshape((-1, height, width))
 
 
-def crop_center(array, crop_height, crop_width):
+def crop_center(array, crop_height=None, crop_width=None):
     """
     Crops the center portion of an infrared sensor array image sequence.
 
@@ -483,10 +483,12 @@ def crop_center(array, crop_height, crop_width):
     ---------
     array : np.array
         (frames, height, width) or (frames, height, width, channel)
-    crop_height : int
-        height of the cropped patch, if -1 then equal to input's height
-    crop_width : int
-        width of the cropped patch, if -1 then equal to input's width
+    crop_height : int, optional
+        Height of the cropped patch, if -1 then equal to input's height.
+        If crop_height, crop_width are None image will be cropped to match smaller spatial dimension.
+    crop_width : int, optional
+        Width of the cropped patch, if -1 then equal to input's width.
+        If crop_height, crop_width are None image will be cropped to match smaller spatial dimension.
 
     Returns
     -------
@@ -494,6 +496,15 @@ def crop_center(array, crop_height, crop_width):
         cropped array (frames, crop_height, crop_width)
     """
     _, height, width = array.shape[:3]
+    if not (crop_width or crop_height):
+        smaller_dim = height if (height < width) else width
+        crop_width, crop_height =  smaller_dim, smaller_dim
+    if not crop_width:
+        if crop_height:
+            crop_width = crop_height
+    if not crop_height:
+        if crop_width:
+            crop_height = crop_width
     crop_height = height if (crop_height == -1) else crop_height
     start_y = height//2 - crop_height//2
     crop_width = width if (crop_width == -1) else crop_width

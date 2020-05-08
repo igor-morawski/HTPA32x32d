@@ -1130,7 +1130,7 @@ def _crop_and_repeat_ts(ts, start, end, first_n, last_n):
 def _avg_ts(timestamp_list):
     return np.sum(timestamp_list, axis=0)/len(timestamp_list)
 
-def convert_TXT2NPZ_TPA_RGB_Dataset(dataset_dir: str, frames: int, frame_shift: int = 0, output_dir: str = None):
+def convert_TXT2NPZ_TPA_RGB_Dataset(dataset_dir: str, frames: int, frame_shift: int = 0, output_dir: str = None, crop_to_center=True):
     '''
     Convert TXT dataset made with TPA_RGB_Dataset_Maker to NPZ,
     crop the recordings from array[:] to array[label-frames+frame_shift:label+frame_shift]
@@ -1193,8 +1193,7 @@ def convert_TXT2NPZ_TPA_RGB_Dataset(dataset_dir: str, frames: int, frame_shift: 
                 tpa_timestamps[view_id] = _crop_and_repeat_ts(
                     tpa_ts, start, end, pad_first, pad_last)
             rgb_array = [cv2.imread(fp) for fp in sample.RGB.filepaths]
-            rgb_array = np.array(_pad_repeat_frames(
-                rgb_array[start:end], pad_first, pad_last)).astype(np.uint8)
+            rgb_array = tools.crop_center(np.array(_pad_repeat_frames(rgb_array[start:end], pad_first, pad_last)).astype(np.uint8))
             rgb_timestamps = _crop_and_repeat_ts(
                 sample.RGB.timestamps, start, end, pad_first, pad_last)
             tpa_avg_timestamps = _avg_ts(list(tpa_timestamps.values()))
