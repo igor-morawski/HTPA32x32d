@@ -1222,11 +1222,11 @@ def convert_TXT2NPZ_TPA_RGB_Dataset(dataset_dir: str, frames: int, frame_shift: 
                 tpa_arrays[view_id] = _pad_repeat_frames(
                     tpa_array[start:end], pad_first, pad_last).astype(np.half)
                 tpa_timestamps[view_id] = _crop_and_repeat_ts(
-                    tpa_ts, start, end, pad_first, pad_last)
+                    tpa_ts, start, old_length, pad_first, pad_last)
             rgb_array = [cv2.imread(fp) for fp in sample.RGB.filepaths]
             rgb_array = tools.crop_center(np.array(_pad_repeat_frames(rgb_array[start:end], pad_first, pad_last)).astype(np.uint8))
             rgb_timestamps = _crop_and_repeat_ts(
-                sample.RGB.timestamps, start, end, pad_first, pad_last)
+                sample.RGB.timestamps, start, old_length, pad_first, pad_last)
             # sliding window
             patches_n = old_length//frames
             rgb_patches = [rgb_array[i*frames:(i+1)*frames]
