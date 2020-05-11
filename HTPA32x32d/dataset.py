@@ -1255,6 +1255,11 @@ def convert_TXT2NPZ_TPA_RGB_Dataset(dataset_dir: str, frames: int, frame_shift: 
                 optional_kwargs = {"pad_first": pad_first if (i == 0) else int(0), "pad_last": int(0), "repeating_frames": True if (i == 0) else False}
                 np.savez_compressed(output_fp, one_hot=sample_class, frames=frames, frame_shift=0, tpa_avg_timestamps=tpa_avg_timestamps, tpa_rgb_avg_timestamps=tpa_rgb_avg_timestamps, **optional_kwargs, **{"array_ID{}".format(view_id): tpa_patch[view_id] for view_id in sample.TPA.ids}, **{
                                     "timestamps_ID{}".format(view_id): tpa_ts[view_id] for view_id in sample.TPA.ids}, **{'array_IDRGB': rgb_patch, 'timestamps_IDRGB': rgb_ts})
-    data = {"repeating_frames": True, "frame_shift" : frame_shift, "frames" : frames, "view_IDs" : view_IDs}
+    rgb_shape = None
+    if size:
+        rgb_shape = list(size) + [3]
+    else:
+        rgb_shape = rgb_array.shape
+    data = {"repeating_frames": True, "frame_shift" : frame_shift, "frames" : frames, "view_IDs" : view_IDs, "rgb_shape" : rgb_shape}
     with open(os.path.join(output_dir, "samples.nfo"), 'w') as f:
         json.dump(data, f)
