@@ -14,8 +14,7 @@ import struct
 import argparse
 
 import HTPA32x32d.communication
-import HTPA32x32d.tools
-
+import HTPA32x32d.tools as tools
 
 def query_yes_no(question, default="yes"):
     """Ask a yes/no question via raw_input() and return their answer.

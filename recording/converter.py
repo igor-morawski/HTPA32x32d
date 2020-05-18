@@ -5,7 +5,8 @@ Call python converter.py --help to learn more.
 import argparse
 import glob
 import os
-import tools
+import HTPA32x32d.tools as tools
+
 
 if __name__ == "__main__":
 
