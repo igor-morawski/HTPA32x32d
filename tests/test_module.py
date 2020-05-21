@@ -179,9 +179,9 @@ class Test_headers_handling(unittest.TestCase):
         fp = os.path.join(TESTING_DIR,"expected.TXT")
         self.assertEqual(tools.read_txt_header(fp), "ARRAYTYPE=10MBIT=12REFCAL=2T=Y")
 
-    def write_txt_header(self):
+    def test_write_txt_header(self):
         expected_fp = os.path.join(TMP_PATH, "test.txt")
-        expected_array = np.arange(3*32*32).reshape([-1, 32, 32])
+        expected_array = np.load(EXPECTED_NP_FP)
         expected_timestamps = [170.093, 170.218, 170.343]
         expected_header = "TESTING"
         tools.write_np2txt(expected_fp, expected_array, expected_timestamps, expected_header)
@@ -191,6 +191,27 @@ class Test_headers_handling(unittest.TestCase):
         self.assertEqual(header, expected_header)
         self.assertTrue(np.array_equal(array, expected_array))
         _cleanup([expected_fp])
+
+    def test_modify_txt_header(self):
+        expected_fp = os.path.join(TMP_PATH, "test.txt")
+        expected_array = np.load(EXPECTED_NP_FP)
+        expected_timestamps = [170.093, 170.218, 170.343]
+        expected_header = "TESTING"
+        tools.write_np2txt(expected_fp, expected_array, expected_timestamps, expected_header)
+        array, timestamps = tools.read_tpa_file(expected_fp)
+        header = tools.read_txt_header(expected_fp)
+        self.assertEqual(timestamps, expected_timestamps)
+        self.assertEqual(header, expected_header)
+        self.assertTrue(np.array_equal(array, expected_array))
+        modified_header = "MODIFIED"
+        tools.modify_txt_header(expected_fp, modified_header)
+        array, timestamps = tools.read_tpa_file(expected_fp)
+        header = tools.read_txt_header(expected_fp)
+        self.assertEqual(timestamps, expected_timestamps)
+        self.assertEqual(header, modified_header)
+        self.assertTrue(np.array_equal(array, expected_array))
+        _cleanup([expected_fp])
+
         
         
 
@@ -1241,9 +1262,9 @@ class Test_class_TPA_RGB_Preparer(unittest.TestCase):
         fns5 = ["20200415_1438_IDRGB", "NO_LABELS_IDRGB"]
         fns = fns1 + fns2 + fns3 + fns4 + fns5
         expected_fps = [os.path.join(dest, f) for f in fns]
-        self.assertEqual(tools.read_txt_header(expected_fps[0]), "test1")
-        self.assertEqual(tools.read_txt_header(expected_fps[1]), "test1")
-        self.assertEqual(tools.read_txt_header(expected_fps[2]), "test1")
+        self.assertEqual(tools.read_txt_header(expected_fps[0]), "test1,label5")
+        self.assertEqual(tools.read_txt_header(expected_fps[1]), "test1,label5")
+        self.assertEqual(tools.read_txt_header(expected_fps[2]), "test1,label5")
         self.assertEqual(tools.read_txt_header(expected_fps[3]), "HTPA32x32d")
         self.assertEqual(tools.read_txt_header(expected_fps[4]), "HTPA32x32d")
         self.assertEqual(tools.read_txt_header(expected_fps[5]), "HTPA32x32d")

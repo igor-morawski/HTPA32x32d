@@ -1069,6 +1069,8 @@ class TPA_RGB_Dataset_Maker(_Dataset_Maker):
                 fp_o = fp_o_prefix + "ID" + view_id + "." + self.tpas_extension
                 fps.append(fp)
                 fps_o.append(fp_o)
+                old_header = tools.read_txt_header(fp)
+                tools.modify_txt_header(fp, old_header+",label{}".format(self._labels[prefix]))
             fp_rgb = fp_prefix + "ID" + "RGB"
             fp_o_rgb = fp_o_prefix + "ID" + "RGB"
             dirs2copy.append(fp_rgb)
@@ -1266,3 +1268,4 @@ def convert_TXT2NPZ_TPA_RGB_Dataset(dataset_dir: str, frames: int, frame_shift: 
     data = {"repeating_frames": True, "frame_shift" : frame_shift, "frames" : frames, "view_IDs" : view_IDs, "rgb_shape" : rgb_shape}
     with open(os.path.join(output_dir, "samples.nfo"), 'w') as f:
         json.dump(data, f)
+

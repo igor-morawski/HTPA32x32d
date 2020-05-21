@@ -125,6 +125,14 @@ def write_tpa_file(filepath: str, array, timestamps: list, header=None) -> bool:
         assert not header
         return write_np2pickle(filepath, array, timestamps)
 
+def modify_txt_header(filepath : str, new_header):
+    header = new_header.rstrip()
+    header += "\n"
+    with open(filepath) as f:
+        lines = f.readlines()
+        lines[0] = header
+    with open(filepath, "w") as f:
+        f.writelines(lines)
 
 def read_txt_header(filepath: str):
     """
