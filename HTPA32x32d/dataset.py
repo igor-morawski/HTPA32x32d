@@ -1165,6 +1165,7 @@ def convert_TXT2NPZ_TPA_RGB_Dataset(dataset_dir: str, frames: int, frame_shift: 
     if fail:
         return False
     for prefix in prefixes:
+        print("Processing {}...".format(prefix))
         for f in files:
             if prefix in f:
                 sample_dir = os.path.split(f)[0]
