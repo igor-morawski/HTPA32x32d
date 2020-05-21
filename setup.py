@@ -6,7 +6,7 @@ HTPA32x32d #TODO
 '''
 
 setup(name='HTPA32x32d',
-      version='1.0.0',
+      version='1.0.1',
       description='Utilities to work with Heimann HTPA 32x32d using starter kit',
       long_description=long_description,
       author='Igor Morawski',

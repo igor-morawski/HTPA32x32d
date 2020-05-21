@@ -929,6 +929,7 @@ class TPA_RGB_Preparer(_Preparer):
 
         for prefix in prefixes2process:
             raw_fp_prefix = os.path.join(self.raw_input_dir, prefix)
+            self._log("Processing {}...".format(raw_fp_prefix))
             processed_fp_prefix = os.path.join(
                 self.processed_destination_dir, prefix)
             tpa_fps = [raw_fp_prefix + "ID" + view_id + "." +
@@ -957,6 +958,7 @@ class TPA_RGB_Preparer(_Preparer):
                 for img_fp in img_fps:
                     img = cv2.imread(img_fp)
                     cv2.imwrite(img_fp, self._undistorter.undistort(img))
+            self._log("Processed {}.".format(raw_fp_prefix))
         assert not QUIT
         self._write_nfo()
         self._write_labels_file(prefixes2process)
