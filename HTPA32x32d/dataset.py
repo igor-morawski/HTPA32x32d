@@ -1091,7 +1091,7 @@ class TPA_RGB_Dataset_Maker(_Dataset_Maker):
             for src, dst in zip(src_tuple, dst_tuple):
                 shutil.copy2(src, dst)
                 old_header = tools.read_txt_header(src)
-                tools.modify_txt_header(dst, old_header+",label{}".format(self._labels[prefix]))
+                tools.modify_txt_header(dst, old_header+",label{}".format(self._labels[_TPA_get_file_prefix(src)]))
         for src, dst in zip(dirs2copy, dirs2output):
             try:
                 shutil.copytree(src, dst)
