@@ -1069,8 +1069,6 @@ class TPA_RGB_Dataset_Maker(_Dataset_Maker):
                 fp_o = fp_o_prefix + "ID" + view_id + "." + self.tpas_extension
                 fps.append(fp)
                 fps_o.append(fp_o)
-                old_header = tools.read_txt_header(fp)
-                tools.modify_txt_header(fp, old_header+",label{}".format(self._labels[prefix]))
             fp_rgb = fp_prefix + "ID" + "RGB"
             fp_o_rgb = fp_o_prefix + "ID" + "RGB"
             dirs2copy.append(fp_rgb)
@@ -1092,6 +1090,8 @@ class TPA_RGB_Dataset_Maker(_Dataset_Maker):
         for src_tuple, dst_tuple in zip(fps2copy, fps2output):
             for src, dst in zip(src_tuple, dst_tuple):
                 shutil.copy2(src, dst)
+                old_header = tools.read_txt_header(src)
+                tools.modify_txt_header(dst, old_header+",label{}".format(self._labels[prefix]))
         for src, dst in zip(dirs2copy, dirs2output):
             try:
                 shutil.copytree(src, dst)
