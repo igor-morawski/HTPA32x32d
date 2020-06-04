@@ -2,7 +2,7 @@ from setuptools import setup
 from setuptools import find_packages
 
 long_description = '''
-HTPA32x32d #TODO
+HTPA32x32d #TODO description
 '''
 
 setup(name='HTPA32x32d',

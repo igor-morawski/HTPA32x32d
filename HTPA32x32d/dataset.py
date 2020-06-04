@@ -52,7 +52,7 @@ class _TPA_Sample():
                 return False
         return True
 
-    def write_gif(self):  # FUTURE: add normalization!!!!
+    def write_gif(self):
         """
         Writes visualization gif to same directory as in self.filepaths,
         the filename follows the template: FILE_PREFIX_ID{id1}-{id2}-...-{idn}.gif
@@ -61,7 +61,6 @@ class _TPA_Sample():
             raise Exception("Unaligned sequences cannot be synchronized!")
         data = np.concatenate(self.arrays, axis=2)
         pc = tools.np2pc(data)
-        #FUTURE: think about other objectives than minimizing MSE
         ts = np.sum(self.timestamps, axis=0)/len(self.timestamps)
         duration = tools.timestamps2frame_durations(ts)
         head, tail = os.path.split(self.filepaths[0])
@@ -318,9 +317,15 @@ class _Preparer(_TPA_File_Manager):
         with open(filepath, 'w') as f:
             json.dump(data, f)
 
-    def _write_labels_file(self, prefixes2label):
+    def _write_labels_file(self, prefixes2label, labels_dict = None):
         filepath = os.path.join(self.processed_destination_dir, "labels.json")
         data = {prefix: "" for prefix in prefixes2label}
+        if labels_dict:
+            for key in labels_dict:
+                try:
+                    data[key] = labels_dict[key]
+                except KeyError:
+                    pass
         with open(filepath, 'w') as f:
             json.dump(data, f)
 
@@ -634,8 +639,12 @@ class _TPA_RGB_Sample():
         data = np.concatenate(self.TPA.arrays, axis=2)
         pc = tools.np2pc(data)
         rgb_height, rgb_width = (cv2.imread(self.RGB.filepaths[0]).shape)[0:2]
-        new_width = int(rgb_width/len(self.TPA.arrays))*len(self.TPA.arrays)
-        new_height = int(rgb_width/len(self.TPA.arrays))
+        # 
+        pc = np.insert(pc, range(pc.shape[2]//len(self.TPA.arrays), pc.shape[2], pc.shape[2]//len(self.TPA.arrays)), 0, axis=2)
+        old_h, old_w = pc.shape[1:3]
+        new_width = int((rgb_width/old_w)*old_w)
+        new_height = int((rgb_width/old_w)*old_h)
+        #
         pc_reshaped = [cv2.resize(frame, dsize=(
             new_width, new_height), interpolation=cv2.INTER_NEAREST) for frame in pc]
         pc_reshaped = np.array(pc_reshaped).astype(np.uint8)
@@ -926,7 +935,7 @@ class TPA_RGB_Preparer(_Preparer):
         if self.undistort:
             mtx, dist, width, height, _ = _unpack_calib_pkl(self.calib_fp)
             self._undistorter = _Undistorter(mtx, dist, width, height)
-
+        negative_samples_dict = {}
         for prefix in prefixes2process:
             raw_fp_prefix = os.path.join(self.raw_input_dir, prefix)
             self._log("Processing {}...".format(raw_fp_prefix))
@@ -948,7 +957,9 @@ class TPA_RGB_Preparer(_Preparer):
                 QUIT = True
                 self._log("[ERROR] {} did not pass synchronization test (max error {} s exceeded)!".format(
                     prefix, SYNCHRONIZATION_MAX_ERROR))
-                continue
+                continue    
+            if header.split(",")[-1] == "neg":
+                negative_samples_dict[prefix] = int(-1)
             processed_sample.write()
             if self.visualize:
                 processed_sample.write_gif()
@@ -961,7 +972,7 @@ class TPA_RGB_Preparer(_Preparer):
             self._log("Processed {}.".format(raw_fp_prefix))
         assert not QUIT
         self._write_nfo()
-        self._write_labels_file(prefixes2process)
+        self._write_labels_file(prefixes2process, negative_samples_dict)
         self._write_make_file()
         self._log("Writing nfo, labels and json files...")
         self._log("OK")
