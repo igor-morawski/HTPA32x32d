@@ -308,6 +308,10 @@ class _Preparer(_TPA_File_Manager):
             self.calib_fp = self._json['calib_fp']
         except KeyError:
             self.calib_fp = None
+        try:
+            self.vis_order = self._json['vis_order']
+        except KeyError:
+            self.vis_order = None
         self.configured = True
         return True
 
@@ -629,14 +633,27 @@ class _TPA_RGB_Sample():
             result = pickle.load(f)
         return result
 
-    def write_gif(self):  
+    def write_gif(self, vis_order = None):  
         """
         Writes visualization gif to same directory as in self.filepaths,
         the filename follows the template: FILE_PREFIX_ID{id1}-{id2}-...-{idn}.gif
+
+        vis_order - preferred order, 
         """
         if not self.test_alignment():
             raise Exception("Unaligned sequences cannot be synchronized!")
-        data = np.concatenate(self.TPA.arrays, axis=2)
+        if vis_order:
+            try:
+            #XXX reorder
+                assert len(vis_order) == len(self.TPA.ids)
+                assert set(vis_order) == set(self.TPA.ids)
+                v_idx = [self.TPA.ids.copy().index(v) for v in vis_order]
+            except:
+                print("[WARNING] Visualization order ignored")
+                v_idx = self.TPA.ids.copy()
+        else:
+            v_idx = self.TPA.ids.copy()
+        data = np.concatenate([self.TPA.arrays[i] for i in v_idx], axis=2)
         pc = tools.np2pc(data)
         rgb_height, rgb_width = (cv2.imread(self.RGB.filepaths[0]).shape)[0:2]
         # 
@@ -962,7 +979,7 @@ class TPA_RGB_Preparer(_Preparer):
                 negative_samples_dict[prefix] = int(-1)
             processed_sample.write()
             if self.visualize:
-                processed_sample.write_gif()
+                processed_sample.write_gif(vis_order=self.vis_order)
             if self.undistort:
                 img_fps = glob.glob(os.path.join(
                     processed_rgb_dir, "*." + tools.HTPA_UDP_MODULE_WEBCAM_IMG_EXT))
