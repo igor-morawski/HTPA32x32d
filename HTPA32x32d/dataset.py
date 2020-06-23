@@ -644,15 +644,14 @@ class _TPA_RGB_Sample():
             raise Exception("Unaligned sequences cannot be synchronized!")
         if vis_order:
             try:
-            #XXX reorder
                 assert len(vis_order) == len(self.TPA.ids)
                 assert set(vis_order) == set(self.TPA.ids)
                 v_idx = [self.TPA.ids.copy().index(v) for v in vis_order]
             except:
                 print("[WARNING] Visualization order ignored")
-                v_idx = self.TPA.ids.copy()
+                v_idx = list(range(len(self.TPA.ids)))
         else:
-            v_idx = self.TPA.ids.copy()
+            v_idx = list(range(len(self.TPA.ids)))
         data = np.concatenate([self.TPA.arrays[i] for i in v_idx], axis=2)
         pc = tools.np2pc(data)
         rgb_height, rgb_width = (cv2.imread(self.RGB.filepaths[0]).shape)[0:2]
