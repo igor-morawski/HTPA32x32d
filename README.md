@@ -2,6 +2,39 @@ Feel free to [contact me](https://www.linkedin.com/in/igor-morawski/) if you hav
 
 If you need to use this module to work with Heimann HTPA32x32d, I suggest forking the repo because maintaining backwards compatibility (as well as documentation) is not my priority at the moment. 
 
+
+```BibTeX
+
+@INPROCEEDINGS{9506024,
+  author={Morawski, Igor and Lie, Wen-Nung and Chiang, Jui-Chiu},
+  booktitle={2021 IEEE International Conference on Image Processing (ICIP)}, 
+  title={Action Prediction Using Extremely Low-Resolution Thermopile Sensor Array For Elderly Monitoring}, 
+  year={2021},
+  volume={},
+  number={},
+  pages={984-988},
+  doi={10.1109/ICIP42928.2021.9506024}}
+
+
+@inproceedings{morawski2020two,
+  title={Two-stream deep learning architecture for action recognition by using extremely low-resolution infrared thermopile arrays},
+  author={Morawski, Igor and Lie, Wen-Nung},
+  booktitle={International Workshop on Advanced Imaging Technology (IWAIT) 2020},
+  volume={11515},
+  pages={115150Y},
+  year={2020},
+  organization={International Society for Optics and Photonics}
+}
+
+
+@misc{im2020HTPA32x32d,
+  author =       {Igor Morawski},
+  title =        {HTPA32x32d tools},
+  howpublished = {\url{https://github.com/igor-morawski/HTPA32x32d/}},
+  year =         {2020}
+}
+```
+
 # HTPA32x32d 
 
 This repository contains tools to work with thermopile sensor array Heimann HTPA 32x32d and UDP communication module (included in the starting kit) in multi-view setup. Because it is still uner development for my research, there might be **no backward compability** between the commits.
@@ -124,11 +157,3 @@ Python program that connects to Heimann HTPA sensors given their IP addresses (i
 ## misc/img_converter.py
 Python program that converts TXT files (single-frame files) recorded by Heimann HTPA sensors and calculates and saves histograms.
 
-```BibTeX
-@misc{im2020HTPA32x32d,
-  author =       {Igor Morawski},
-  title =        {HTPA32x32d tools},
-  howpublished = {\url{https://github.com/igor-morawski/HTPA32x32d/}},
-  year =         {2020}
-}
-```
